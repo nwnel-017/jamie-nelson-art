@@ -33,9 +33,9 @@ const closeNav = () => {
           <NuxtLink to="/about" class="dashLink" @click="closeNav"
             >ABOUT THE ARTIST</NuxtLink
           >
-          <NuxtLink to="/commissions" class="dashLink" @click="closeNav"
+          <!-- <NuxtLink to="/commissions" class="dashLink" @click="closeNav"
             >COMMISSIONS</NuxtLink
-          >
+          > -->
           <NuxtLink to="/contact" class="dashLink" @click="closeNav"
             >CONTACT</NuxtLink
           >

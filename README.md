@@ -4,6 +4,10 @@ Live site: https://jamie-nelson-art.com
 
 Jamie Nelson Art is a custom online portfolio and storefront I built for a professional artist to display and sell original artwork online. The project combines a curated gallery experience with a stripe payout so visitors can browse collections, view artwork details, and purchase available pieces directly through the site. It includes an internal dashboard with admin-only auth for the artist to edit their artworks, galleries, and manage orders.
 
+### Payments Notice
+
+The Stripe payment and payout flow for this project has been fully implemented. Live transaction processing is currently disabled for legal/compliance reasons, so the site operates in demonstration mode only.
+
 ## Project Goal
 
 The aim of this project is to provide a polished, artist-focused platform that does two things well:

@@ -28,7 +28,6 @@ useSeoMeta({
   ogImage: () => artwork.value?.image_path || undefined,
 });
 
-// To Do: research useAsyncData - best practice and why to use
 const { data: galleryImages, pending: pendingGallery } = await useAsyncData<
   GalleryRow[]
 >(`gallery-${route.params.id}`, () => getGalleryImages(id.value as string));
@@ -142,16 +141,16 @@ async function payWithStripe() {
       </div>
       <div class="clmGap paddedSides">
         <h1>{{ artwork?.title }}</h1>
-        <div>${{ artwork?.price }}</div>
+        <!-- <div>${{ artwork?.price }}</div> -->
         <div>{{ artwork?.dimensions }}</div>
         <div><strong>About:</strong> {{ artwork?.description }}</div>
         <div v-if="artwork?.artwork_note">
-          <strong>*</strong> {{ artwork?.artwork_note }}
+          <!-- <strong>*</strong> {{ artwork?.artwork_note }} -->
         </div>
-        <Button v-if="!artwork.sold" class="buttonCol" @click="confirmPayment"
+        <!-- <Button v-if="!artwork.sold" class="buttonCol" @click="confirmPayment"
           >Buy Now</Button
         >
-        <Button v-else disabled class="buttonCol">Sold</Button>
+        <Button v-else disabled class="buttonCol">Sold</Button> -->
       </div>
     </div>
   </div>

@@ -63,8 +63,8 @@ async function viewArtwork(id: string) {
       </div>
       <div class="artDetails">
         <div class="artTitle">{{ artwork?.title }}</div>
-        <div v-if="!artwork?.sold" class="center">${{ artwork?.price }}</div>
-        <div v-else class="center">Sold</div>
+        <!-- <div v-if="!artwork?.sold" class="center">${{ artwork?.price }}</div>
+        <div v-else class="center">Sold</div> -->
       </div>
     </div>
   </div>
