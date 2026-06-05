@@ -63,6 +63,9 @@ async function viewCollection(collectionId: string) {
             :src="collection?.image_path ?? undefined"
             alt=""
             class="collectionImg"
+            format="webp"
+            quality="70"
+            sizes="(max-width: 768px) 45vw, (max-width: 1024px) 30vw, 20vw"
             :class="{ visible: allImagesLoaded }"
             @load="loadImage"
           />

@@ -46,10 +46,15 @@ async function payWithStripe() {
       <h2 class="center">Confirm Payment</h2>
       <div class="payment-item">
         <div class="artwork-container">
-          <img
+          <NuxtImg
             class="artwork-image"
             :src="artwork?.image_path ?? undefined"
             alt=""
+            format="webp"
+            quality="70"
+            width="80"
+            height="80"
+            sizes="80px"
           />
         </div>
         <div class="detail-container">

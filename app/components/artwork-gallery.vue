@@ -52,6 +52,11 @@ async function viewArtwork(id: string) {
           :src="artwork?.image_path ?? undefined"
           alt=""
           class="artwork"
+          format="webp"
+          quality="70"
+          width="80"
+          height="80"
+          sizes="80px"
           @load="loadImage"
           :class="{ visible: allImagesLoaded }"
         />

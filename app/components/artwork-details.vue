@@ -21,6 +21,9 @@ const formattedDate = computed(() => formatDateShort(artwork?.created_at));
         alt=""
         class="artworkFull"
         placeholder
+        format="webp"
+        quality="70"
+        sizes="(max-width: 768px) 15rem, (max-width: 1024px) 25rem, 35rem"
       />
       <div class="textContent">
         <div>{{ artwork?.description }}</div>

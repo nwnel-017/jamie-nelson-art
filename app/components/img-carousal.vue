@@ -28,6 +28,9 @@ const reversed = computed<CoverImageRow[]>(() => {
           :src="artwork.image_path"
           alt="Artwork Image"
           class="carouselImg"
+          format="webp"
+          quality="65"
+          sizes="(max-width: 768px) 40vw, (max-width: 1024px) 30vw, 15vw"
         />
       </div>
     </div>
@@ -45,6 +48,9 @@ const reversed = computed<CoverImageRow[]>(() => {
           :src="artwork.image_path"
           alt="Artwork Image"
           class="carouselImg"
+          format="webp"
+          quality="65"
+          sizes="(max-width: 768px) 40vw, (max-width: 1024px) 30vw, 15vw"
         />
       </div>
     </div>
