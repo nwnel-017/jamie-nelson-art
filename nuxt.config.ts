@@ -49,11 +49,11 @@ export default defineNuxtConfig({
   runtimeConfig: {
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     stripeSecretKey: process.env.STRIPE_SECRET_KEY,
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
 
     public: {
       supabaseUrl: process.env.SUPABASE_URL,
       admin: process.env.ADMIN_EMAIL,
-      stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
       stripeDomesticShippingId: process.env.STRIPE_SHIPPING_ID_DOMESTIC,
       stripeInternationalShippingId:
         process.env.STRIPE_SHIPPING_ID_INTERNATIONAL,

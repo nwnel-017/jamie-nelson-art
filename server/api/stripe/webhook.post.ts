@@ -1,7 +1,6 @@
 import { stripe } from "@server/utils/stripe/stripe";
 import { Stripe } from "stripe";
-import { serverSupabaseClient } from "#supabase/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import {
   createOrder,
   updateOrderStatusById,
@@ -12,33 +11,70 @@ import {
   validateShippingAddress,
 } from "@utils/validation/stripe";
 import { getStripeId } from "@utils/stripe/stripe";
+import type { Database } from "#types/supabase/database";
 
-export default defineEventHandler(async (event) => {
-  console.log("stripe webhook has been reached");
+async function insertWebhookEvent(
+  supabase: SupabaseClient<Database>,
+  stripeEventId: string,
+) {
+  const { error } = await supabase.from("webhook_event").insert({
+    event_id: stripeEventId,
+    status_type: "PENDING",
+  });
 
-  const config = useRuntimeConfig();
-  const stripeWebhookSecret = config.public.stripeWebhookSecret;
-  const rawBody = await readRawBody(event);
-  const signature = getHeader(event, "stripe-signature");
+  if (error) {
+    throw error;
+  }
+}
 
-  if (!signature || !rawBody) {
-    throw createError({ statusCode: 400, message: "Bad Request" });
+async function getWebhookEvent(
+  supabase: SupabaseClient<Database>,
+  stripeEventId: string,
+) {
+  const { data, error } = await supabase
+    .from("webhook_event")
+    .select("id, status_type")
+    .eq("event_id", stripeEventId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
   }
 
-  let stripeEvent: Stripe.Event;
-  try {
-    stripeEvent = stripe.webhooks.constructEvent(
-      rawBody!,
-      signature!,
-      stripeWebhookSecret,
-    );
-  } catch (err) {
-    console.log("An error occured reading the event: " + err);
-    throw new Error("Failed to retrieve event!");
+  return data;
+}
+
+async function markWebhookEventProcessed(
+  supabase: SupabaseClient<Database>,
+  stripeEventId: string,
+) {
+  const { error } = await supabase
+    .from("webhook_event")
+    .update({
+      status_type: "PROCESSED",
+      processed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      error_message: null,
+    })
+    .eq("event_id", stripeEventId);
+
+  if (error) {
+    throw error;
   }
-  // try {
+}
+
+async function processEvent(
+  stripeEvent: Stripe.Event,
+  supabase: SupabaseClient<Database>,
+) {
+  const webhookEvent = await getWebhookEvent(supabase, stripeEvent.id);
+
+  if (!webhookEvent || webhookEvent.status_type === "PROCESSED") {
+    return;
+  }
+
   switch (stripeEvent.type) {
-    case "checkout.session.completed":
+    case "checkout.session.completed": {
       console.log("processed payment event detected");
       const session = stripeEvent.data.object as Stripe.Checkout.Session;
 
@@ -71,12 +107,7 @@ export default defineEventHandler(async (event) => {
         throw new Error("Missing required parameters!");
       }
 
-      // To Do: insert order details into orders table
       try {
-        const supabase = createClient(
-          config.public.supabaseUrl,
-          config.supabaseServiceKey,
-        );
         await createOrder(
           supabase,
           artworkId,
@@ -88,27 +119,23 @@ export default defineEventHandler(async (event) => {
           paymentIntentId,
           checkoutSessionId,
         );
+        await markWebhookEventProcessed(supabase, stripeEvent.id);
       } catch (err) {
         console.log("Something went wrong: " + err);
         throw new Error("Something went wrong!");
       }
       break;
+    }
     case "charge.refunded":
     case "refund.created": {
       console.log("Refund event received:", stripeEvent.type);
 
       try {
-        // const supabase = await serverSupabaseClient(event);
-        const supabase = createClient(
-          config.public.supabaseUrl,
-          config.supabaseServiceKey,
-        );
-
         let paymentIntentId: string | null = null;
 
         if (stripeEvent.type === "charge.refunded") {
           const charge = stripeEvent.data.object as Stripe.Charge;
-          paymentIntentId = getStripeId(charge.payment_intent); // To Do: implement getStripeId
+          paymentIntentId = getStripeId(charge.payment_intent);
         }
 
         if (stripeEvent.type === "refund.created") {
@@ -126,6 +153,7 @@ export default defineEventHandler(async (event) => {
         );
 
         await updateOrderStatusById(supabase, order.id, "REFUNDED");
+        await markWebhookEventProcessed(supabase, stripeEvent.id);
       } catch (err) {
         console.error("Failed to process refund:", err);
         throw err;
@@ -134,4 +162,46 @@ export default defineEventHandler(async (event) => {
       break;
     }
   }
+}
+
+// TO DO - when site grows we will need to add queue processing for webhook events to protect from race conditions
+// add transactions for db integrity
+export default defineEventHandler(async (event) => {
+  console.log("stripe webhook has been reached");
+
+  const config = useRuntimeConfig();
+  const stripeWebhookSecret = config.stripeWebhookSecret;
+  const rawBody = await readRawBody(event);
+  const signature = getHeader(event, "stripe-signature");
+
+  if (!signature || !rawBody) {
+    throw createError({ statusCode: 400, message: "Bad Request" });
+  }
+
+  let stripeEvent: Stripe.Event;
+  try {
+    stripeEvent = stripe.webhooks.constructEvent(
+      rawBody!,
+      signature!,
+      stripeWebhookSecret,
+    );
+  } catch (err) {
+    console.log("An error occured reading the event: " + err);
+    throw new Error("Failed to retrieve event!");
+  }
+
+  const supabase = createClient(
+    config.public.supabaseUrl,
+    config.supabaseServiceKey,
+  );
+
+  try {
+    await insertWebhookEvent(supabase, stripeEvent.id);
+  } catch (err) {
+    console.log("Failed to insert webhook event: ", err);
+  }
+
+  await processEvent(stripeEvent, supabase);
+
+  return { received: true };
 });
