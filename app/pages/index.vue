@@ -35,7 +35,7 @@ const bioParagraphs = computed(() => {
         :src="profile.imageUrl"
         alt="Jamie Stambolie Nelson"
         class="portraitImage"
-        sizes="100vw md:36vw lg:32vw"
+        sizes="89vw sm:58vw lg:32vw"
         loading="eager"
         fetchpriority="high"
         @error="portraitFailed = true"
@@ -57,50 +57,44 @@ const bioParagraphs = computed(() => {
 
 <style scoped>
 .artistAbout {
-  width: min(88.5%, 120rem);
+  width: min(88.5%, 72rem);
   margin: 0 auto;
   padding: 2.5rem 0 5rem;
-  display: grid;
-  gap: 2.5rem;
-  align-items: start;
+  display: flow-root;
 }
 
 .portrait {
   width: 100%;
-  max-width: 35rem;
+  margin: 0 0 2.5rem;
 }
 
 .portraitImage,
 .portraitPlaceholder {
   display: block;
   width: 100%;
-  aspect-ratio: 2 / 3;
 }
 
 .portraitImage {
-  object-fit: cover;
-  object-position: center;
+  height: auto;
 }
 
 .portraitPlaceholder {
-  position: relative;
   display: grid;
   place-items: center;
-  overflow: hidden;
+  box-sizing: border-box;
+  gap: 1.5rem;
+  padding: 2rem;
   background: #415563;
   color: #e1e6e9;
 }
 
 .portraitPlaceholder svg {
-  width: 75%;
+  width: 60%;
+  max-width: 12rem;
   fill: #71818b;
 }
 
 .portraitPlaceholder span {
-  position: absolute;
-  bottom: 1.5rem;
-  left: 1rem;
-  right: 1rem;
   text-align: center;
   font-size: 1rem;
 }
@@ -119,8 +113,8 @@ const bioParagraphs = computed(() => {
 
 .biography p {
   margin: 0 0 1em;
-  font-size: clamp(1.125rem, 1.65vw, 2.125rem);
-  line-height: 1.2;
+  font-size: clamp(1.125rem, 1.3vw, 1.375rem);
+  line-height: 1.6;
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
@@ -129,20 +123,35 @@ const bioParagraphs = computed(() => {
   margin-bottom: 0;
 }
 
+@media (min-width: 640px) {
+  .portrait {
+    width: 65%;
+    margin-inline: auto;
+  }
+}
+
 @media (min-width: 768px) {
   .artistAbout {
-    grid-template-columns: minmax(0, 36.25%) minmax(0, 1fr);
-    gap: 6.3vw;
     padding: 2.8vw 0 10vw;
-  }
-
-  .portrait {
-    max-width: none;
-    margin-top: 2vw;
   }
 
   .biography h1 {
     margin-bottom: 3vw;
+  }
+}
+
+@media (min-width: 1024px) {
+  .artistAbout {
+    width: min(88.5%, 120rem);
+    display: grid;
+    grid-template-columns: minmax(0, 36.25%) minmax(0, 1fr);
+    gap: 6.3vw;
+    align-items: start;
+  }
+
+  .portrait {
+    width: 100%;
+    margin: 2vw 0 0;
   }
 }
 </style>

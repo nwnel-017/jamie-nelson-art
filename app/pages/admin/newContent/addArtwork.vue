@@ -23,6 +23,8 @@ const artwork = reactive<ArtworkData>({
   description: "",
   price: "",
   dimensions: "",
+  year: "",
+  medium: "",
   collection: "",
   artwork_note: "",
   cover_image: false,
@@ -69,6 +71,8 @@ const submit = async () => {
     artwork.collection,
     artwork.artwork_note || "",
     artwork.cover_image || false,
+    String(artwork.year ?? "").trim(),
+    artwork.medium?.trim() || "",
   );
 
   if (!response.success) {
@@ -82,6 +86,8 @@ const submit = async () => {
   image.value = null;
   artwork.price = "";
   artwork.dimensions = "";
+  artwork.year = "";
+  artwork.medium = "";
   artwork.collection = "";
   artwork.artwork_note = "";
 
@@ -101,6 +107,18 @@ const submit = async () => {
       <input type="text" v-model="artwork.price" inputmode="decimal" />
       <label for="dimensions">Dimensions</label>
       <input type="text" v-model="artwork.dimensions" />
+      <label for="year">Year (Optional)</label>
+      <input
+        id="year"
+        type="number"
+        v-model="artwork.year"
+        inputmode="numeric"
+        min="1900"
+        max="2100"
+        step="1"
+      />
+      <label for="medium">Medium (Optional)</label>
+      <input id="medium" type="text" v-model="artwork.medium" />
       <label for="artwork_note">Artwork Note (Optional)</label>
       <input type="text" v-model="artwork.artwork_note" />
       <label for="image">Artwork Image</label>

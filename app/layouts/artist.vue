@@ -30,16 +30,13 @@ watch(() => route.fullPath, () => { menuOpen.value = false; });
       >
         <NuxtLink to="/" @click="menuOpen = false">ABOUT</NuxtLink>
         <NuxtLink to="/artworks/gallery" @click="menuOpen = false">PORTFOLIO</NuxtLink>
-        <span class="comingSoon" aria-disabled="true" title="Coming soon">
-          EXHIBITIONS &amp; PROJECTS
-          <span class="visuallyHidden"> (coming soon)</span>
-        </span>
-        <NuxtLink to="/collections/collections" @click="menuOpen = false">SHOP</NuxtLink>
+        <NuxtLink to="/exhibitions" @click="menuOpen = false">EXHIBITIONS &amp; PROJECTS</NuxtLink>
+        <NuxtLink to="/shop" @click="menuOpen = false">SHOP</NuxtLink>
         <NuxtLink to="/contact" @click="menuOpen = false">CONTACT</NuxtLink>
       </nav>
     </header>
 
-    <main id="home-content" class="siteContent" tabindex="0" aria-label="About the artist">
+    <main id="home-content" class="siteContent" tabindex="0">
       <slot />
     </main>
 
@@ -146,10 +143,6 @@ watch(() => route.fullPath, () => { menuOpen.value = false; });
 
 .siteNav.isOpen {
   display: flex;
-}
-
-.comingSoon {
-  cursor: default;
 }
 
 .siteContent {

@@ -25,6 +25,8 @@ const editedArtwork = ref<ArtworkData>({
   title: "",
   description: "",
   dimensions: "",
+  year: "",
+  medium: "",
   price: "",
   collection: artwork.value?.collection_id || "",
   artwork_note: "",
@@ -41,6 +43,8 @@ function startEdit() {
     title: artwork.value?.title || "",
     description: artwork.value?.description || "",
     dimensions: artwork.value?.dimensions || "",
+    year: artwork.value?.year?.toString() || "",
+    medium: artwork.value?.medium || "",
     price: artwork.value?.price?.toString() || "",
     collection: artwork.value?.collection_id || "",
     artwork_note: artwork.value?.artwork_note || "",
@@ -55,6 +59,8 @@ function stopEdit() {
     title: "",
     description: "",
     dimensions: "",
+    year: "",
+    medium: "",
     price: "",
     collection: artwork.value?.collection_id || "",
     artwork_note: "",
@@ -71,6 +77,8 @@ async function save() {
   const newDesc = editedArtwork.value.description;
   const newPrice = editedArtwork.value.price;
   const newDimensions = editedArtwork.value.dimensions;
+  const newYear = String(editedArtwork.value.year ?? "").trim();
+  const newMedium = editedArtwork.value.medium?.trim() || "";
   const newCollection = editedArtwork.value.collection;
   const newNote = editedArtwork.value.artwork_note || "";
   const newCoverImageValue = editedArtwork.value.cover_image;
@@ -84,6 +92,8 @@ async function save() {
     newDesc === artwork.value?.description &&
     newPrice === artwork.value?.price?.toString() &&
     newDimensions === artwork.value?.dimensions &&
+    newYear === (artwork.value?.year?.toString() || "") &&
+    newMedium === (artwork.value?.medium || "") &&
     newCollection === artwork.value?.collection_id &&
     newNote === artwork.value?.artwork_note &&
     newCoverImageValue === artwork.value?.cover_image
@@ -97,6 +107,8 @@ async function save() {
   form.append("title", newTitle);
   form.append("description", newDesc);
   form.append("dimensions", newDimensions);
+  form.append("year", newYear);
+  form.append("medium", newMedium);
   form.append("collection", newCollection);
   form.append("artwork_note", newNote);
   form.append("cover_image", newCoverImageValue?.toString() || "false");
@@ -153,6 +165,8 @@ async function deleteArtwork() {
                 <div><span>Title:</span> {{ artwork?.title }}</div>
                 <div><span>Description:</span> {{ artwork?.description }}</div>
                 <div><span>Dimensions:</span> {{ artwork?.dimensions }}</div>
+                <div><span>Year:</span> {{ artwork?.year }}</div>
+                <div><span>Medium:</span> {{ artwork?.medium }}</div>
                 <div><span>Price:</span> ${{ artwork?.price || `$${0}` }}</div>
               </div>
             </div>
@@ -186,6 +200,22 @@ async function deleteArtwork() {
           <textarea v-model="editedArtwork.price" type="text"></textarea>
           <label for="dimensions">Size:</label>
           <textarea v-model="editedArtwork.dimensions" type="text"></textarea>
+          <label for="year">Year (Optional):</label>
+          <input
+            id="year"
+            v-model="editedArtwork.year"
+            type="number"
+            inputmode="numeric"
+            min="1900"
+            max="2100"
+            step="1"
+          />
+          <label for="medium">Medium (Optional):</label>
+          <textarea
+            id="medium"
+            v-model="editedArtwork.medium"
+            type="text"
+          ></textarea>
           <label for="artwork_note">Artwork Note (Optional):</label>
           <textarea v-model="editedArtwork.artwork_note" type="text"></textarea>
           <label for="cover_image">Cover Image</label>
