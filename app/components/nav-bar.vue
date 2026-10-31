@@ -69,6 +69,8 @@ const closeNav = () => {
 .navBar {
   width: 100%;
   height: 5rem;
+  position: relative;
+  z-index: 10;
   padding: 0 1rem;
   background-color: var(--theme-off-white);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -79,14 +81,14 @@ const closeNav = () => {
 }
 
 .linkItems {
-  position: fixed;
+  position: absolute;
   right: 0;
-  top: 0;
+  top: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  transform: translateY(-200%);
+  transform: translateY(-1rem);
   transition: transform 0.3s ease-in-out;
   background-color: white;
   border-radius: 8px;
@@ -94,10 +96,14 @@ const closeNav = () => {
   width: 50%;
   min-height: 70dvh;
   padding: 2rem;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .linkItems.expanded {
   transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .dashLink {
