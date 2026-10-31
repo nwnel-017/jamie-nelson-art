@@ -100,6 +100,8 @@ watch(() => route.fullPath, () => { menuOpen.value = false; });
 }
 
 .siteHeader {
+  position: relative;
+  z-index: 20;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -126,14 +128,20 @@ watch(() => route.fullPath, () => { menuOpen.value = false; });
 }
 
 .siteNav {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
   display: none;
-  flex-basis: 100%;
   flex-direction: column;
   align-items: flex-start;
   gap: 1.25rem;
-  padding: 0.5rem 0;
+  padding: 1rem 1.5rem 1.5rem;
+  background: white;
+  box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 10%);
   font-size: 1rem;
   line-height: 1.2;
+  z-index: 1;
 }
 
 .siteNav.isOpen {
@@ -206,7 +214,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false; });
   position: fixed;
   top: 0.5rem;
   left: 0.5rem;
-  z-index: 10;
+  z-index: 21;
   padding: 1rem;
   background: white;
 }
@@ -240,12 +248,15 @@ watch(() => route.fullPath, () => { menuOpen.value = false; });
   }
 
   .siteNav {
+    position: static;
     display: flex;
     flex-basis: auto;
     flex-direction: row;
     align-items: center;
     gap: clamp(1rem, 2.4vw, 3rem);
     padding: 0;
+    background: transparent;
+    box-shadow: none;
     font-size: clamp(1rem, 1.55vw, 2rem);
     white-space: nowrap;
   }
