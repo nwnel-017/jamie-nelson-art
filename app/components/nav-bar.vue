@@ -200,6 +200,8 @@ const closeNav = () => {
     padding: 0;
     gap: 2rem;
     min-height: auto;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .verticalSpaced {
