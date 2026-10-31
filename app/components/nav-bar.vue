@@ -70,7 +70,7 @@ const closeNav = () => {
   width: 100%;
   height: 5rem;
   position: relative;
-  z-index: 10;
+  z-index: 1000;
   padding: 0 1rem;
   background-color: var(--theme-off-white);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
