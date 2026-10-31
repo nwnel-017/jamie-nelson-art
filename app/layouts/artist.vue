@@ -31,12 +31,17 @@ watch(() => route.fullPath, () => { menuOpen.value = false; });
         <NuxtLink to="/" @click="menuOpen = false">ABOUT</NuxtLink>
         <NuxtLink to="/artworks/gallery" @click="menuOpen = false">PORTFOLIO</NuxtLink>
         <NuxtLink to="/exhibitions" @click="menuOpen = false">EXHIBITIONS &amp; PROJECTS</NuxtLink>
-        <NuxtLink to="/shop" @click="menuOpen = false">SHOP</NuxtLink>
+        <NuxtLink to="/shop-unavailable" @click="menuOpen = false">SHOP</NuxtLink>
         <NuxtLink to="/contact" @click="menuOpen = false">CONTACT</NuxtLink>
       </nav>
     </header>
 
-    <main id="home-content" class="siteContent" tabindex="0">
+    <main
+      id="home-content"
+      class="siteContent"
+      :class="{ centeredContent: route.meta.centerContent }"
+      tabindex="0"
+    >
       <slot />
     </main>
 
@@ -150,6 +155,12 @@ watch(() => route.fullPath, () => { menuOpen.value = false; });
   min-width: 0;
   background: var(--artist-blue);
   color: #fff;
+}
+
+.siteContent.centeredContent {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .siteFooter {
