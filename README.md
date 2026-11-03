@@ -96,3 +96,28 @@ The project expects environment variables for:
 ## Summary
 
 This project was designed as a real-world artwork portfolio for a working artist, with a strong emphasis on presentation, maintainability, and direct online sales. It reflects a full-stack TypeScript approach using Nuxt, Nitro, Supabase, PostgreSQL, and Stripe to deliver both the gallery experience and the supporting commerce workflow.
+
+
+### Design request verification
+
+Apply `supabase/migrations/20261103000000_create_design_requests.sql` to the
+Supabase database before enabling design verification. The `design_requests`
+table has a UUID ID, the original Canva export URL in `design_image`, trimmed
+user `instructions`, three JSON arrays (`requirements`, `ambiguities`, and
+`clarifying_questions`), and automatic creation/update timestamps. Canva export
+URLs may expire; this currently stores the supplied URL rather than copying the
+image to permanent storage.
+
+The handoff validates the Canva user, instructions, design token and PNG before
+calling the model. `generateDesignRequest` passes the verification system prompt,
+validated instructions and image bytes to an injected `AiModel`, validates its
+JSON response, then awaits the database insert. Only a successful insert returns
+HTTP 200 with `{ message: "success", designRequest: <saved row> }`. Invalid model
+output or a failed insert returns an error without reporting success.
+
+No model provider is configured yet. Supply `model: new AiModelAdapter(...)` in
+`server/api/agent-handoff/index.post.ts` when ready; until then the endpoint
+returns HTTP 503 after input validation. Database writes use the backend service
+role; direct access by anonymous and authenticated Supabase clients is disabled.
+The API returns the saved analysis; the Canva publishing callback currently only
+consumes its success acknowledgement, so a clarification UI is still future work.

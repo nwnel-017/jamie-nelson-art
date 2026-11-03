@@ -1,0 +1,55 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "es2018",
+      "es2019.array",
+      "es2019.object",
+      "es2019.string",
+      "es2020.promise",
+      "es2020.string"
+    ],
+    "types": ["node", "webpack-env", "jest"],
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "noImplicitOverride": true,
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "rootDir": ".",
+    "outDir": "dist",
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "target": "ES2019",
+    "sourceMap": true,
+    "inlineSources": true,
+    "module": "ESNext",
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "scripts/*": ["./scripts/*"],
+      "src/*": ["./src/*"],
+      "styles/*": ["./styles/*"],
+      "utils/*": ["./utils/*"]
+    }
+  },
+  "include": [
+    "./*.ts",
+    "./src/**/*",
+    "./backend/**/*",
+    "./utils/**/*",
+    "./scripts/**/*",
+    "./declarations/declarations.d.ts",
+    "./styles/**/*"
+  ]
+}

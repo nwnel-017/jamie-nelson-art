@@ -29,9 +29,7 @@ export default defineNuxtConfig({
   css: ["~/assets/styles/main.css"],
   modules: ["@nuxtjs/supabase", "nuxt-lottie", "@nuxt/image", "nuxt-svgo"],
   image: {
-    domains: process.env.SUPABASE_DOMAIN
-      ? [process.env.SUPABASE_DOMAIN]
-      : [],
+    domains: process.env.SUPABASE_DOMAIN ? [process.env.SUPABASE_DOMAIN] : [],
   },
   lottie: {
     componentName: "Lottie", // Optional: Customize the component name
@@ -47,6 +45,10 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    canvaAppId: "AAHOGIFETu8",
+    canvaAllowedUserIds: "",
+    canvaExportHosts: "export-download.canva.com",
+    canvaAppOrigin: "https://app-aahogifetu8.canva-apps.com",
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     stripeSecretKey: process.env.STRIPE_SECRET_KEY,
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,

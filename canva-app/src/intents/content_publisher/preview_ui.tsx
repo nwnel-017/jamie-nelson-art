@@ -1,0 +1,71 @@
+import { Box } from "@canva/app-ui-kit";
+import type {
+  OutputType,
+  PreviewMedia,
+  RenderPreviewUiInvocationContext,
+} from "@canva/intents/content";
+import { useEffect, useState } from "react";
+import * as styles from "styles/preview_ui.css";
+import { PostPreview } from "./post_preview";
+import { parsePublishSettings } from "./types";
+
+interface PreviewUiProps {
+  invocationContext: RenderPreviewUiInvocationContext;
+  registerOnPreviewChange: (
+    callback: (opts: {
+      previewMedia: PreviewMedia[];
+      outputType: OutputType;
+      publishRef?: string;
+    }) => void,
+  ) => () => void;
+}
+
+// Main preview UI component that receives preview updates when settings or pages change.
+// Preview UI is more flexible to align with your platform's design system, so it is not constrained to the Canva design system.
+export const PreviewUi = ({
+  invocationContext,
+  registerOnPreviewChange,
+}: PreviewUiProps) => {
+  const [previewData, setPreviewData] = useState<{
+    previewMedia?: PreviewMedia[];
+    outputType?: OutputType;
+    publishRef?: string;
+  } | null>(
+    invocationContext
+      ? {
+          previewMedia:
+            (invocationContext?.previewMedia as PreviewMedia[]) || [],
+          outputType:
+            (invocationContext?.outputType as OutputType) || undefined,
+          publishRef: invocationContext?.publishRef,
+        }
+      : null,
+  );
+  // Register to receive preview updates whenever settings or pages change
+  useEffect(() => {
+    const dispose = registerOnPreviewChange((data) => {
+      setPreviewData(data);
+    });
+    return dispose;
+  }, [registerOnPreviewChange]);
+
+  const { previewMedia, publishRef, outputType } = previewData ?? {};
+  const publishSettings = parsePublishSettings(publishRef);
+
+  return (
+    <div className={styles.container}>
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flexDirection="column"
+        width="full"
+        height="full"
+      >
+        {outputType?.id === "portfolio" && (
+          <PostPreview previewMedia={previewMedia} settings={publishSettings} />
+        )}
+      </Box>
+    </div>
+  );
+};

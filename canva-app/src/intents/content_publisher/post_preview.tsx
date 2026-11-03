@@ -1,0 +1,171 @@
+import { Box, ImageCard, Placeholder, Rows, Text } from "@canva/app-ui-kit";
+import type { Preview, PreviewMedia } from "@canva/intents/content";
+import { FormattedMessage, useIntl } from "react-intl";
+import * as styles from "styles/preview_ui.css";
+import type { PublishSettings } from "./types";
+
+const IMAGE_WIDTH = 400;
+
+interface PreviewProps {
+  previewMedia: PreviewMedia[] | undefined;
+  settings: PublishSettings | undefined;
+}
+
+export const PostPreview = ({ previewMedia, settings }: PreviewProps) => (
+  <div style={{ width: IMAGE_WIDTH + 34 }}>
+    <Box
+      background="surface"
+      borderRadius="large"
+      padding="2u"
+      border="standard"
+    >
+      <Rows spacing="2u">
+        <Text variant="bold">
+          <FormattedMessage
+            defaultMessage="Portfolio design"
+            description="Portfolio handoff preview title"
+          />
+        </Text>
+        <ImagePreview previewMedia={previewMedia} />
+        <Text variant="bold">
+          <FormattedMessage
+            defaultMessage="AI instructions"
+            description="Heading for instructions in the portfolio preview"
+          />
+        </Text>
+        <Text>{settings?.instructions}</Text>
+      </Rows>
+    </Box>
+  </div>
+);
+
+// Renders a single image post preview
+const ImagePreview = ({
+  previewMedia,
+}: {
+  previewMedia: PreviewMedia[] | undefined;
+}) => {
+  const isLoading = !previewMedia;
+  const media = previewMedia?.find((media) => media.mediaSlotId === "media");
+  const fullWidth = (media?.previews.length ?? 1) * IMAGE_WIDTH;
+
+  return (
+    <div className={styles.imageContainer}>
+      {isLoading || !media?.previews.length ? (
+        <div className={styles.imagePlaceholder}>
+          <Placeholder shape="rectangle" />
+        </div>
+      ) : (
+        <div className={styles.imageRow} style={{ width: fullWidth }}>
+          {media?.previews
+            .filter((p) => p.kind !== "email")
+            .map((p) => {
+              return (
+                <div key={p.id} className={styles.image}>
+                  <PreviewRenderer preview={p} />
+                </div>
+              );
+            })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Renders individual preview based on its type and status
+const PreviewRenderer = ({ preview }: { preview: Preview }) => {
+  const intl = useIntl();
+
+  if (preview.kind === "email") {
+    return null;
+  }
+  // Handle different preview states
+  if (preview.status === "loading") {
+    return (
+      <ImageStatusText
+        text={intl.formatMessage({
+          defaultMessage: "Loading...",
+          description: "Text displayed while the preview is loading",
+        })}
+      />
+    );
+  }
+
+  if (preview.status === "error") {
+    return (
+      <ImageStatusText
+        text={intl.formatMessage({
+          defaultMessage: "Error loading preview",
+          description:
+            "Text displayed when there is an error loading the preview",
+        })}
+      />
+    );
+  }
+
+  // Handle image previews (ready status)
+  if (isImagePreviewReady(preview)) {
+    return (
+      <ImageCard
+        alt={intl.formatMessage(
+          {
+            defaultMessage: "Image preview {previewId}",
+            description: "Alt text for image preview in the preview UI",
+          },
+          { previewId: preview.id },
+        )}
+        thumbnailUrl={preview.url}
+      />
+    );
+  }
+
+  // Fallback for unknown preview types
+  return (
+    <Box
+      width="full"
+      height="full"
+      padding="2u"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+    >
+      <Text size="medium" tone="tertiary" alignment="center">
+        <FormattedMessage
+          defaultMessage="Preview not available"
+          description="Text displayed when the preview type is not supported"
+        />
+      </Text>
+    </Box>
+  );
+};
+
+// Helper component to display status text for loading/error states
+const ImageStatusText = ({ text }: { text: string }) => (
+  <Box
+    width="full"
+    height="full"
+    padding="2u"
+    display="flex"
+    alignItems="center"
+    justifyContent="center"
+  >
+    <Text size="medium" tone="tertiary" alignment="center">
+      {text}
+    </Text>
+  </Box>
+);
+
+/**
+ * Type guard to check if a preview is an image preview that's ready to display
+ */
+export function isImagePreviewReady(preview: Preview): preview is Preview & {
+  kind: "image";
+  status: "ready";
+  url: string;
+} {
+  return (
+    preview.kind === "image" &&
+    preview.status === "ready" &&
+    preview.url != null
+  );
+}
