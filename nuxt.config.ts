@@ -45,8 +45,14 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    maxAnalyzeAttempts: 4,
+    aiProvider: "test",
+    aiApiKey: "",
+    aiModel: "",
+    aiBaseUrl: "https://api.openai.com/v1",
     canvaAppId: "AAHOGIFETu8",
     canvaAllowedUserIds: "",
+    canvaAllowUnlistedLocalUsers: false,
     canvaExportHosts: "export-download.canva.com",
     canvaAppOrigin: "https://app-aahogifetu8.canva-apps.com",
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,

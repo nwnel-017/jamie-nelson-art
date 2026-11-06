@@ -1,8 +1,12 @@
 import { getRequestURL, handleCors } from "h3";
 
 export default defineEventHandler((event) => {
-  if (!/^\/api\/agent-handoff\/?$/.test(getRequestURL(event).pathname)) return;
-
+  if (
+    !/^\/api\/agent\/(?:gather-requirements|(?:clarify-requirements|execute)\/[^/]+)\/?$/.test(
+      getRequestURL(event).pathname,
+    )
+  )
+    return;
   const config = useRuntimeConfig(event);
   if (
     handleCors(event, {

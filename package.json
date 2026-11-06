@@ -7,9 +7,11 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
+    "canva": "npm run start:preview",
     "postinstall": "nuxt prepare",
     "webhook": "stripe listen --forward-to http://localhost:3000/api/stripe/webhook",
-    "test:handoff": "node --import tsx --test tests/agent-handoff.test.ts tests/ai-model.test.ts",
+    "test:drafts:integration": "node --env-file=.env --import tsx --test tests/design-drafts.integration.test.ts",
+    "test:handoff": "node --import tsx --test tests/agent-handoff.test.ts tests/ai-model.test.ts tests/design-clarifications.test.ts",
     "canva:user-id": "node --import tsx scripts/canva-user-id.ts"
   },
   "dependencies": {

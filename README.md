@@ -100,24 +100,103 @@ This project was designed as a real-world artwork portfolio for a working artist
 
 ### Design request verification
 
-Apply `supabase/migrations/20261103000000_create_design_requests.sql` to the
-Supabase database before enabling design verification. The `design_requests`
-table has a UUID ID, the original Canva export URL in `design_image`, trimmed
-user `instructions`, three JSON arrays (`requirements`, `ambiguities`, and
-`clarifying_questions`), and automatic creation/update timestamps. Canva export
-URLs may expire; this currently stores the supplied URL rather than copying the
-image to permanent storage.
+Apply the migrations in `supabase/migrations/` before enabling the feature. The
+handoff validates the Canva user, exported design, PNG, instructions, and selected
+change categories. It uploads the image to `website_designs`, then creates an
+owner-scoped `design_requests` row before invoking any agent.
 
-The handoff validates the Canva user, instructions, design token and PNG before
-calling the model. `generateDesignRequest` passes the verification system prompt,
-validated instructions and image bytes to an injected `AiModel`, validates its
-JSON response, then awaits the database insert. Only a successful insert returns
-HTTP 200 with `{ message: "success", designRequest: <saved row> }`. Invalid model
-output or a failed insert returns an error without reporting success.
+The `website_designs` bucket permits public reads and backend-only writes. It
+accepts PNG files up to 5 MB. Files have generated UUID filenames; request rows
+store their Supabase URLs. Failed initial inserts trigger image cleanup. Once a
+request exists, failed analysis retains the request, image, and latest valid draft.
 
-No model provider is configured yet. Supply `model: new AiModelAdapter(...)` in
-`server/api/agent-handoff/index.post.ts` when ready; until then the endpoint
-returns HTTP 503 after input validation. Database writes use the backend service
-role; direct access by anonymous and authenticated Supabase clients is disabled.
-The API returns the saved analysis; the Canva publishing callback currently only
-consumes its success acknowledgement, so a clarification UI is still future work.
+Each model invocation reserves and increments `design_requests.analyze_attempts`
+atomically. `NUXT_MAX_ANALYZE_ATTEMPTS` defaults to 4 and counts the initial analysis
+and failed calls. At the limit, a new invocation is rejected with a user-facing
+error. `design_analyses` records reservations and outcomes so retries do not
+consume another attempt, concurrent submissions cannot create competing plans,
+and stale versions are rejected. Abandoned reservations expire after two minutes;
+their attempts remain consumed. Retrying a failed call requires a new submission ID.
+
+Successful analysis completes the reserved `design_analyses` row and assigns the
+next version. Completed results are immutable. Each version
+contains the plan, requirements, ambiguities, questions with stable IDs, cumulative
+answer history, readiness, and the submission ID that produced it. A failed call
+keeps a failed analysis row with no result or draft version. The latest draft query
+only considers completed analyses. Existing analyzed records are migrated to draft version
+1 without assuming that their old plans are executable.
+
+The verification agent produces the initial draft. The clarification endpoint
+loads the specified source version, sanitizes and validates ID-matched answers,
+checks ownership, and reserves an attempt only if that version is still current.
+It gives the clarification agent the original instructions, change categories,
+latest draft, and new answers as untrusted user data, separate from the system
+prompt. The model must preserve established decisions and ask only for unresolved
+blocking details. Output is validated before a draft is stored. A ready plan must
+contain concrete steps and targets, requirements, and no blocking ambiguities or
+questions. No website changes or arbitrary code execution take place.
+
+`POST /api/agent/clarify-requirements/:id` accepts:
+
+```json
+{
+  "draft_version": 1,
+  "submission_id": "a-unique-uuid-for-this-submission",
+  "answers": [{ "question_id": "the-question-uuid", "answer": "The gallery page" }]
+}
+```
+
+Use the same submission ID and payload when retrying a network failure. A completed
+retry returns its saved version without calling the model. Changed answers require
+a new ID; stale draft versions must be refreshed. Invalid answers consume no attempt.
+The response includes `designRequest` and top-level `ready`, `plan`, `draft_version`,
+and `attempts_remaining`. There is no GET endpoint.
+
+The first Canva Publish sends the export, instructions, selected `changeOptions`,
+and a UUID `submission_id` to `POST /api/agent/gather-requirements`. The first
+submission ID is the stable request ID; identical retries return the saved analysis
+without another model invocation. A changed payload under that ID is rejected.
+Apply `20261104000001_initial_analysis_retries.sql` for the initial payload hash.
+
+The complete POST result is passed to the settings frame. It displays requirements
+and asks one question at a time, with Next, Back, and Submit. Submit sends ID-matched
+answers to the clarification endpoint, saves a new draft, and displays the returned
+JSON. This repeats until `ready=true` or the analysis attempt limit is reached.
+The initial analysis counts toward the limit. A ready final attempt can be approved.
+
+Ready responses, including an initially ready response, display a confirmation screen
+with the known instructions and an Approve button. Approval calls
+`POST /api/agent/execute/:id` without a request body. The endpoint authenticates the owner and
+checks that the latest saved draft is ready; it currently returns
+`{ success: true, requestId, draft_version }` without executing website changes.
+Denial is deferred. Canva Publish only completes after explicit approval.
+
+Responses, entered answers, and submission IDs are saved in local storage scoped to
+the backend, Canva app, team, user, and design. Reload restores this UI without GET.
+Tokens are decoded only for cache namespacing; the server verifies authorization.
+Approval or starting a new request clears the saved workflow. If storage is blocked,
+the active session remains usable; cleared storage cannot recover a saved request.
+Processing is synchronous, without polling or automatic analysis on Publish retries.
+
+`NUXT_AI_PROVIDER` defaults to `test`, requiring no AI key. Its fixed initial draft
+has three questions. Vague answers such as `idk` or `not sure` cause a follow-up;
+concrete test answers produce a ready plan. This is deterministic test behavior,
+not real semantic analysis. Canva authentication, storage, and persistence remain
+real. For a real image-capable JSON model, use `NUXT_AI_PROVIDER=chat-completions`,
+`NUXT_AI_API_KEY`, and `NUXT_AI_MODEL`; `NUXT_AI_BASE_URL` defaults to
+`https://api.openai.com/v1`. The model timeout is 45 seconds and Canva's request
+timeout is 90 seconds. Missing live-model configuration does not fall back to test
+output. Both agents accept the provider-neutral `AiModel` interface.
+
+Run `npm run test:handoff` for isolated tests, and `npm run test:drafts:integration`
+for the real local Supabase transaction checks (requires `.env` and applied
+migrations). Integration checks create temporary records and clean them up.
+
+For local Canva testing without discovering your user ID first, set
+`NUXT_CANVA_ALLOW_UNLISTED_LOCAL_USERS=true` and leave
+`NUXT_CANVA_ALLOWED_USER_IDS` empty or set it to the placeholder
+`REPLACE_WITH_YOUR_CANVA_USER_ID`. This only takes effect in development mode,
+with `NUXT_AI_PROVIDER=test`, and when Supabase points to a loopback host. Canva JWT signatures,
+app identity, expiry and claims are still verified, and each saved request remains
+owned by the verified user. Production, real model providers, hosted Supabase databases,
+and explicitly configured allowlists retain normal allowlist checks.

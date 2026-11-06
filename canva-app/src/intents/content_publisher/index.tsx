@@ -20,7 +20,7 @@ function renderSettingsUi(request: RenderSettingsUiRequest) {
   root.render(
     <AppI18nProvider>
       <AppUiProvider>
-        <SettingsUi {...request} />
+        <SettingsUi {...request} backendHost={BACKEND_HOST} />
       </AppUiProvider>
     </AppI18nProvider>,
   );

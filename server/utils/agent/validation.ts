@@ -6,6 +6,14 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_IMAGE_PIXELS = 25_000_000;
 export const MAX_IMAGE_DIMENSION = 10_000;
 
+const changeOption = z.enum(["existing_pages", "new_pages", "website_theme"]);
+export type ChangeOption = z.infer<typeof changeOption>;
+const changeOptions = z
+  .array(changeOption)
+  .min(1)
+  .max(3)
+  .refine((values) => new Set(values).size === values.length);
+
 const page = z
   .object({
     pageId: z.string().min(1).max(256).optional(),
@@ -31,6 +39,7 @@ const image = z
 const schema = z
   .object({
     source: z.literal("canva"),
+    changeOptions,
     instructions: z.string().min(1).max(4000),
     outputMedia: z
       .array(
@@ -87,6 +96,6 @@ export function parseHandoff(value: unknown) {
   if (file.widthPx * file.heightPx > MAX_IMAGE_PIXELS) {
     throw new HandoffError(413, "Image exceeds the pixel limit.");
   }
-  return { instructions, file };
+  return { instructions, changeOptions: result.data.changeOptions, file };
 }
 export type HandoffImage = ReturnType<typeof parseHandoff>["file"];

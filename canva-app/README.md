@@ -18,7 +18,7 @@ canva apps start --preview
 
 The CLI opens the publisher preview in Canva and serves the frontend at http://localhost:8080. Keep the command running while previewing. Local `.env` files are ignored by Git; `.env.example` contains placeholders for a fresh checkout.
 
-The publisher collects required AI instructions (up to 4,000 characters), previews one selected design page as a PNG, and sends `{ source: "canva", instructions, outputMedia }` to `POST /api/agent-handoff`. Canva's publish button submits the handoff; no separate export dialog is needed.
+The publisher collects required AI instructions (up to 4,000 characters), previews one selected design page as a PNG, and sends `{ submission_id, source: "canva", instructions, changeOptions, outputMedia }` to `POST /api/agent/gather-requirements`. Canva's publish button submits the handoff; no separate export dialog is needed.
 
 Start the Nuxt backend in a second terminal from the repository root with `npm run dev` (port 3000). Set `CANVA_BACKEND_HOST=http://localhost:3000` in this directory's `.env`, then restart `canva apps start --preview` after changing it. For a deployed backend, use its HTTPS base URL without `/api`.
 
@@ -55,3 +55,21 @@ Instruction checks reject blank/oversized text, hidden controls, common role ove
 Errors use HTTP 400 (payload), 401 (tokens), 403 (user not allowed), 413 (limits), 415 (unsupported format), 422 (instructions or image), 502/504 (download failure/timeout), or 503 (access not configured). Responses do not include JWTs, signed export URLs or internal transport errors.
 
 Run backend checks with `npm run test:handoff` from the root. Run frontend checks with `npm test -- --runInBand`, `npm run lint:check`, and `canva apps build` from this directory. The complete portfolio also requires its existing Supabase/Stripe environment; a local placeholder Stripe test key can be used for this handoff-only test, which does not call Stripe.
+
+### Clarification banner message
+
+After successful analysis, the publisher returns a recoverable response with the
+`design_clarification_required` localized message ID. The clarification panel also
+shows the submission message directly.
+
+Run `npm run build` in `canva-app`, then upload `dist/messages_en.json` in the
+Canva Developer Portal under **Inside Canva → Code upload → Translations**.
+Canva requires the uploaded message bundle to replace its generic publish error
+banner with the custom submission message.
+
+Clarification rounds POST answers to `/api/agent/clarify-requirements/:id` and
+render the returned draft directly. Ready drafts show an explicit Approve button,
+which sends a bodyless POST to `/api/agent/execute/:id` (currently a success-only stub).
+There are no GET/polling requests. The latest response, answer edits, and retry IDs
+are cached in local storage scoped to the Canva app, user, team, design, and backend.
+The saved workflow is cleared on approval or when starting a new request.

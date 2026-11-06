@@ -1,7 +1,36 @@
+import { isRequestId } from "./design_request";
 export const MAX_INSTRUCTIONS_LENGTH = 4000;
 
+export const CHANGE_OPTIONS = [
+  "existing_pages",
+  "new_pages",
+  "website_theme",
+] as const;
+export type ChangeOption = (typeof CHANGE_OPTIONS)[number];
+
+export function isChangeOption(value: unknown): value is ChangeOption {
+  return (
+    typeof value === "string" &&
+    CHANGE_OPTIONS.some((option) => option === value)
+  );
+}
+
+export function isValidChangeOptions(value: unknown): value is ChangeOption[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.length <= CHANGE_OPTIONS.length &&
+    value.every(isChangeOption) &&
+    new Set(value).size === value.length
+  );
+}
+
 export interface PublishSettings {
+  changeOptions: ChangeOption[];
   instructions: string;
+  designRequestId?: string;
+  designId?: string;
+  approvedRequestId?: string;
 }
 
 export function isValidInstructions(instructions: string): boolean {
@@ -25,7 +54,31 @@ export function parsePublishSettings(
     ) {
       return undefined;
     }
-    return { instructions: value.instructions };
+    const changeOptions =
+      "changeOptions" in value && isValidChangeOptions(value.changeOptions)
+        ? value.changeOptions
+        : [];
+    const designRequestId =
+      "designRequestId" in value ? value.designRequestId : undefined;
+    if (designRequestId !== undefined && !isRequestId(designRequestId))
+      return undefined;
+    const designId = "designId" in value ? value.designId : undefined;
+    if (
+      designId !== undefined &&
+      (typeof designId !== "string" || !designId || designId.length > 256)
+    )
+      return undefined;
+    const approvedRequestId =
+      "approvedRequestId" in value ? value.approvedRequestId : undefined;
+    if (approvedRequestId !== undefined && !isRequestId(approvedRequestId))
+      return undefined;
+    return {
+      ...(approvedRequestId ? { approvedRequestId } : {}),
+      ...(designId ? { designId } : {}),
+      instructions: value.instructions,
+      changeOptions,
+      ...(designRequestId ? { designRequestId } : {}),
+    };
   } catch {
     return undefined;
   }

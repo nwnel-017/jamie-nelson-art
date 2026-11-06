@@ -42,9 +42,18 @@ export async function authorizeCanvaUser(
   appId: string,
   allowedUserIds: string[],
   verifiers = getCanvaVerifiers(appId),
+  allowUnlistedLocalUser = false,
 ) {
-  if (!appId || !allowedUserIds.length)
-    throw new HandoffError(503, "Canva handoff access is not configured.");
+  if (!appId)
+    throw new HandoffError(
+      503,
+      "Set NUXT_CANVA_APP_ID before using the Canva handoff.",
+    );
+  if (!allowedUserIds.length && !allowUnlistedLocalUser)
+    throw new HandoffError(
+      503,
+      "Set NUXT_CANVA_ALLOWED_USER_IDS before using the Canva handoff.",
+    );
   let user;
   try {
     user = await verifiers.user.verify(token);
@@ -58,7 +67,7 @@ export async function authorizeCanvaUser(
   ) {
     throw new HandoffError(401, "Invalid Canva user claims.");
   }
-  if (!allowedUserIds.includes(user.userId))
+  if (!allowUnlistedLocalUser && !allowedUserIds.includes(user.userId))
     throw new HandoffError(
       403,
       "This Canva user is not authorized for the portfolio.",
