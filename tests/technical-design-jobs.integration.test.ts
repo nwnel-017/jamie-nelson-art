@@ -1,3 +1,5 @@
+// TO DO --> review existing tests and make sure they pass
+
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -447,3 +449,97 @@ for (const dispatchOutcome of ["rejected", "uncertain"] as const) {
     }
   });
 }
+
+test("approval dispatches a ready draft once and records the GitHub run ID", async (t) => {
+  const client = localClient();
+  const userId = `technical-success-${randomUUID()}`;
+  const { data: request, error } = await client
+    .from("design_requests")
+    .insert({
+      canva_user_id: userId,
+      design_image: "https://example.com/design.png",
+      instructions: "Make gallery blue",
+      requirements: [],
+      ambiguities: [],
+      clarifying_questions: [],
+    })
+    .select("id")
+    .single();
+  assert.ifError(error);
+  assert.ok(request);
+  try {
+    const submissionId = randomUUID();
+    await reserveAnalysis(client, {
+      requestId: request.id,
+      userId,
+      submissionId,
+      baseVersion: 0,
+      payloadHash: "successful-dispatch-hash",
+      limit: 4,
+    });
+    const ready = await finishAnalysis(client, {
+      requestId: request.id,
+      userId,
+      submissionId,
+      answers: [],
+      limit: 4,
+      analysis: {
+        requirements: ["Make gallery blue"],
+        ambiguities: [],
+        clarifying_questions: [],
+        ready: true,
+        plan: {
+          steps: [
+            { id: "step-1", action: "Make gallery blue", target: "/gallery" },
+          ],
+        },
+      },
+    });
+    const planningConfig = {
+      token: "test-token",
+      repository: "owner/repository",
+      repositoryId: "123",
+      workflowRef: "master",
+      sourceRef: "master",
+      backendUrl: "https://backend.example",
+      model: "test-model",
+      promptVersion: "technical-instructions-v1",
+    };
+    let githubCalls = 0;
+    t.mock.method(globalThis, "fetch", async (input) => {
+      const url = new URL(String(input));
+      assert.equal(url.hostname, "api.github.com");
+      githubCalls++;
+      if (url.pathname.includes("/commits/"))
+        return new Response(JSON.stringify({ sha: "e".repeat(40) }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      return new Response(JSON.stringify({ workflow_run_id: 789 }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    });
+
+    const approval = await executeDesignRequest(
+      client,
+      request.id,
+      userId,
+      planningConfig,
+    );
+    const job = await getTechnicalDesignJobForDraft(client, ready.draft!.id);
+
+    assert.deepEqual(approval, {
+      success: true,
+      requestId: request.id,
+      draft_version: ready.draft!.version,
+      jobId: job!.id,
+      status: "queued",
+    });
+    assert.equal(job!.status, "queued");
+    assert.equal(job!.github_run_id, "789");
+    assert.equal(githubCalls, 2, "Resolve once and dispatch once");
+  } finally {
+    await client.from("design_requests").delete().eq("id", request.id);
+  }
+});

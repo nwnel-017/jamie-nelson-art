@@ -1,8 +1,3 @@
-alter table public.design_requests
-  add column analyze_attempts integer not null default 0 check (analyze_attempts >= 0),
-  add column change_options text[] not null default '{}'
-    check (change_options <@ array['existing_pages', 'new_pages', 'website_theme']);
-
 -- Each attempt is reserved before the model call. Only completed attempts have
 -- immutable result data and a version; failed calls leave version history intact.
 create table public.design_analyses (
