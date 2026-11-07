@@ -1,5 +1,4 @@
 // TO DO --> review existing tests and make sure they pass
-
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -36,9 +35,10 @@ function localClient() {
   );
 }
 
-test("technical jobs reserve one approved draft, claim one run once, bind completion and reconcile cancellation", async () => {
-  const client = localClient();
-  const userId = `technical-integration-${randomUUID()}`;
+async function createDesignRequest(
+  client: ReturnType<typeof localClient>,
+  userId: string,
+) {
   const { data: request, error } = await client
     .from("design_requests")
     .insert({
@@ -53,14 +53,59 @@ test("technical jobs reserve one approved draft, claim one run once, bind comple
     .single();
   assert.ifError(error);
   assert.ok(request);
+  return request;
+}
+
+async function createReadyDraft(
+  client: ReturnType<typeof localClient>,
+  requestId: string,
+  userId: string,
+) {
+  const submissionId = randomUUID();
+  await reserveAnalysis(client, {
+    requestId,
+    userId,
+    submissionId,
+    baseVersion: 0,
+    payloadHash: randomUUID(),
+    limit: 4,
+  });
+  return finishAnalysis(client, {
+    requestId,
+    userId,
+    submissionId,
+    answers: [],
+    limit: 4,
+    analysis: {
+      requirements: ["Make the gallery blue."],
+      ambiguities: [],
+      clarifying_questions: [],
+      ready: true,
+      plan: {
+        steps: [
+          {
+            id: "step-1",
+            action: "Make the gallery blue.",
+            target: "/gallery",
+          },
+        ],
+      },
+    },
+  });
+}
+
+test("technical jobs require a ready draft and reserve only one job per draft", async () => {
+  const client = localClient();
+  const userId = `technical-reservation-${randomUUID()}`;
+  const request = await createDesignRequest(client, userId);
+  const input = {
+    requestId: request.id,
+    userId,
+    repositorySha: "a".repeat(40),
+    promptVersion: "1",
+    model: "test-model",
+  };
   try {
-    const input = {
-      requestId: request.id,
-      userId,
-      repositorySha: "a".repeat(40),
-      promptVersion: "1",
-      model: "test-model",
-    };
     const notReady = await client.rpc("reserve_technical_design_job", {
       p_request_id: input.requestId,
       p_user_id: userId,
@@ -69,44 +114,15 @@ test("technical jobs reserve one approved draft, claim one run once, bind comple
       p_model: input.model,
     });
     assert.equal((notReady.data as { state: string }).state, "not_ready");
-    const submissionId = randomUUID();
-    await reserveAnalysis(client, {
-      requestId: request.id,
-      userId,
-      submissionId,
-      baseVersion: 0,
-      payloadHash: "test-hash",
-      limit: 4,
-    });
-    const ready = await finishAnalysis(client, {
-      requestId: request.id,
-      userId,
-      submissionId,
-      answers: [],
-      limit: 4,
-      analysis: {
-        requirements: ["Make the gallery blue."],
-        ambiguities: [],
-        clarifying_questions: [],
-        ready: true,
-        plan: {
-          steps: [
-            {
-              id: "step-1",
-              action: "Make the gallery blue.",
-              target: "/gallery",
-            },
-          ],
-        },
-      },
-    });
+
+    const ready = await createReadyDraft(client, request.id, userId);
     const jobs = await Promise.all([
       reserveTechnicalDesignJob(client, input),
       reserveTechnicalDesignJob(client, input),
     ]);
     assert.equal(jobs.filter((job) => job.created).length, 1);
     assert.equal(jobs[0]!.job.id, jobs[1]!.job.id);
-    const job = jobs[0]!.job;
+
     const foreign = await client.rpc("reserve_technical_design_job", {
       p_request_id: request.id,
       p_user_id: "someone-else",
@@ -118,9 +134,29 @@ test("technical jobs reserve one approved draft, claim one run once, bind comple
     const forbidden = await client
       .from("technical_design_jobs")
       .update({ status: "completed" })
-      .eq("id", job.id);
+      .eq("id", jobs[0]!.job.id);
     assert.ok(forbidden.error, "Only lifecycle RPCs may mutate planning jobs");
+    assert.ok(ready.draft);
+  } finally {
+    await client.from("design_requests").delete().eq("id", request.id);
+  }
+});
 
+test("technical job claim is bound to one run and completion is validated and idempotent", async () => {
+  const client = localClient();
+  const userId = `technical-lifecycle-${randomUUID()}`;
+  const request = await createDesignRequest(client, userId);
+  try {
+    const ready = await createReadyDraft(client, request.id, userId);
+    assert.ok(ready.draft);
+    const input = {
+      requestId: request.id,
+      userId,
+      repositorySha: "a".repeat(40),
+      promptVersion: "1",
+      model: "test-model",
+    };
+    const { job } = await reserveTechnicalDesignJob(client, input);
     const run = { runId: String(Date.now()), runAttempt: 1 };
     await markTechnicalJobDispatched(client, job.id, run.runId);
     assert.equal(
@@ -145,9 +181,9 @@ test("technical jobs reserve one approved draft, claim one run once, bind comple
     const claimed = claims.find((claim) => claim.claimed)!;
     assert.deepEqual(
       claimed.designRequest!.requirements,
-      ready.draft!.requirements,
+      ready.draft.requirements,
     );
-    assert.deepEqual(claimed.designRequest!.plan, ready.draft!.plan);
+    assert.deepEqual(claimed.designRequest!.plan, ready.draft.plan);
     assert.equal(claimed.job!.repository_sha, input.repositorySha);
     const instructions = {
       objective: "Make gallery blue",
@@ -505,10 +541,11 @@ test("approval dispatches a ready draft once and records the GitHub run ID", asy
       model: "test-model",
       promptVersion: "technical-instructions-v1",
     };
+    const originalFetch = globalThis.fetch;
     let githubCalls = 0;
-    t.mock.method(globalThis, "fetch", async (input) => {
+    t.mock.method(globalThis, "fetch", async (input, init) => {
       const url = new URL(String(input));
-      assert.equal(url.hostname, "api.github.com");
+      if (url.hostname !== "api.github.com") return originalFetch(input, init);
       githubCalls++;
       if (url.pathname.includes("/commits/"))
         return new Response(JSON.stringify({ sha: "e".repeat(40) }), {

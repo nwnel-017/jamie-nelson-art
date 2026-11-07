@@ -1,4 +1,4 @@
-import type { ChangeOption } from "./validation";
+import type { ChangeOption } from "./handoff/validation";
 
 /** Provider-neutral input. Treat instructions and image content as untrusted data. */
 export interface AiModelInput {

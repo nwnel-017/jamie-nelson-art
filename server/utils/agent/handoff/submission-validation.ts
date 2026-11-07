@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { HandoffError } from "../errors";
 import { parseHandoff, validateInstructions } from "./validation";
-import { verifyDesign, type CanvaVerifiers } from "./canva";
+import { verifyDesign, type CanvaVerifiers } from "../canva";
 import { downloadImage, validatePng } from "./image";
-import type { DesignDraft, DraftAnswer } from "./design-request";
+import type { DesignDraft, DraftAnswer } from "../design-request";
 
 interface HandoffValidationDependencies {
   verifiers?: CanvaVerifiers;

@@ -1,6 +1,6 @@
 import { getHeader, setHeader, type H3Event } from "h3";
 import { HandoffError } from "./errors";
-import { MAX_BODY_BYTES } from "./validation";
+import { MAX_BODY_BYTES } from "./handoff/validation";
 
 export async function readAgentBody(
   event: H3Event,

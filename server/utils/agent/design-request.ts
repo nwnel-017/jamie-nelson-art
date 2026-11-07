@@ -101,7 +101,7 @@ export type DesignRequestInput = VerificationResult & {
 export type DesignRequest = DesignRequestInput & {
   id: string;
   analyze_attempts?: number;
-  change_options?: import("./validation").ChangeOption[];
+  change_options?: import("./handoff/validation").ChangeOption[];
   draft?: DesignDraft | null;
   draft_version?: number;
   attempts_remaining?: number;
