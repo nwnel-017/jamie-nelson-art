@@ -2,7 +2,6 @@ alter table public.design_requests
   add column analyze_attempts integer not null default 0 check (analyze_attempts >= 0),
   add column change_options text[] not null default '{}'
     check (change_options <@ array['existing_pages', 'new_pages', 'website_theme']);
-update public.design_requests set analyze_attempts = 1 where analysis_status <> 'pending';
 
 -- Each attempt is reserved before the model call. Only completed attempts have
 -- immutable result data and a version; failed calls leave version history intact.
@@ -42,17 +41,6 @@ alter table public.design_analyses enable row level security;
 -- Service clients can read history; only the RPCs below can mutate attempts.
 revoke all on public.design_analyses from public, anon, authenticated, service_role;
 grant select on public.design_analyses to service_role;
-
--- Keep existing analyses as an initial draft, without assuming an old plan is executable.
-insert into public.design_analyses (design_request_id,version,base_version,status,payload_hash,finished_at,plan,requirements,ambiguities,clarifying_questions,answers,ready,submission_id)
-select r.id,1,0,'completed','legacy-backfill',now(),
-  jsonb_build_object('steps',coalesce((select jsonb_agg(jsonb_build_object('id','step-'||n,'action',v,'target',null)) from jsonb_array_elements_text(r.requirements) with ordinality as t(v,n)), '[]'::jsonb)),
-  r.requirements,r.ambiguities,
-  case when jsonb_array_length(r.clarifying_questions)>0 then
-    (select jsonb_agg(jsonb_build_object('id',gen_random_uuid(),'question',v)) from jsonb_array_elements_text(r.clarifying_questions) as t(v))
-  else jsonb_build_array(jsonb_build_object('id',gen_random_uuid(),'question','Which exact pages or theme changes should this plan cover?')) end,
-  coalesce((select jsonb_agg(jsonb_build_object('question_id',coalesce(v->>'question_id',gen_random_uuid()::text),'question',v->>'question','answer',v->>'answer')) from jsonb_array_elements(r.clarifications) as t(v)), '[]'::jsonb), false, gen_random_uuid()
-from public.design_requests r where r.analysis_status = 'completed';
 
 create function public.reserve_design_analysis(p_request_id uuid,p_user_id text,p_submission_id uuid,p_base_version integer,p_payload_hash text,p_limit integer)
 returns jsonb language plpgsql security definer set search_path='' as $$

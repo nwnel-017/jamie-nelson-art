@@ -176,10 +176,16 @@ test("an initially ready result shows Approve and approval clears the saved work
   await act(async () =>
     confirmApproval({
       ok: true,
-      json: async () => ({ success: true, requestId: ready.id }),
+      json: async () => ({
+        success: true,
+        requestId: ready.id,
+        draft_version: 1,
+        jobId: "12345678-1234-4234-8234-123456789ddd",
+        status: "queued",
+      }),
     }),
   );
-  await screen.findByText("Request approved successfully.");
+  await screen.findByText("Request approved and queued.");
   expect(loadWorkflow("test-scope")).toBeUndefined();
   await waitFor(() =>
     expect(updatePublishSettings).toHaveBeenLastCalledWith(

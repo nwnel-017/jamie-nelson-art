@@ -3,6 +3,7 @@ import type { Database } from "#types/supabase/database";
 import { requireCanvaUser } from "@server/utils/auth/requireCanvaUser";
 import { requireDesignRequestId } from "@server/utils/agent/request-id";
 import { agentRequestError } from "@server/utils/agent/errors";
+import { readPlanningConfig } from "@server/utils/agent/planning/github-planning";
 import { executeDesignRequest } from "@server/services/execute-design.service";
 
 export default defineEventHandler(async (event) => {
@@ -12,7 +13,15 @@ export default defineEventHandler(async (event) => {
     const id = requireDesignRequestId(event);
     const supabase = serverSupabaseServiceRole<Database>(event);
 
-    return await executeDesignRequest(supabase, id, user.userId);
+    const config = readPlanningConfig(useRuntimeConfig(event));
+    const result = await executeDesignRequest(
+      supabase,
+      id,
+      user.userId,
+      config,
+    );
+    setResponseStatus(event, 202);
+    return result;
   } catch (error) {
     throw agentRequestError(error);
   }

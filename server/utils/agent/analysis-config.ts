@@ -1,3 +1,4 @@
+// TO DO - verify if this is unnecesary and should be removed
 import { HandoffError } from "./errors";
 
 export const DEFAULT_ANALYSIS_LIMIT = 4;

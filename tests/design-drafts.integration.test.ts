@@ -434,14 +434,58 @@ test("initial POST retries are idempotent, concurrent calls cannot double-analyz
       ),
       code("SUBMISSION_CONFLICT"),
     );
-    const approval = await executeDesignRequest(client, saved.id, owner);
-    assert.deepEqual(approval, {
-      success: true,
-      requestId: id,
-      draft_version: 1,
+    const planningConfig = {
+      token: "test-token",
+      repository: "owner/repository",
+      repositoryId: "123",
+      workflowRef: "master",
+      sourceRef: "master",
+      backendUrl: "https://backend.example",
+      model: "test-model",
+      promptVersion: "technical-instructions-v1",
+    };
+    const originalFetch = globalThis.fetch;
+    let githubCalls = 0;
+    t.mock.method(globalThis, "fetch", async (input, init) => {
+      const url = new URL(String(input));
+      if (url.hostname !== "api.github.com") return originalFetch(input, init);
+      githubCalls++;
+      return new Response(
+        JSON.stringify(
+          url.pathname.includes("/commits/")
+            ? { sha: "a".repeat(40) }
+            : { workflow_run_id: Number(Date.now()) },
+        ),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      );
     });
+    const approval = await executeDesignRequest(
+      client,
+      saved.id,
+      owner,
+      planningConfig,
+    );
+    assert.equal(approval.success, true);
+    assert.equal(approval.requestId, id);
+    assert.equal(approval.draft_version, 1);
+    assert.equal(approval.status, "queued");
+    const repeatedApproval = await executeDesignRequest(
+      client,
+      saved.id,
+      owner,
+      planningConfig,
+    );
+    assert.equal(repeatedApproval.jobId, approval.jobId);
+    assert.equal(
+      githubCalls,
+      2,
+      "Repeated approval must not resolve or dispatch GitHub again",
+    );
     await assert.rejects(
-      executeDesignRequest(client, saved.id, "someone-else"),
+      executeDesignRequest(client, saved.id, "someone-else", planningConfig),
       (error: unknown) =>
         error instanceof HandoffError && error.statusCode === 404,
     );
@@ -453,7 +497,7 @@ test("initial POST retries are idempotent, concurrent calls cannot double-analyz
     );
     assert.equal(pending.ready, false);
     await assert.rejects(
-      executeDesignRequest(client, pending.id, owner),
+      executeDesignRequest(client, pending.id, owner, planningConfig),
       code("PLAN_NOT_READY"),
     );
   } finally {

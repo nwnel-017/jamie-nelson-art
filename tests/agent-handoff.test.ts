@@ -29,7 +29,7 @@ import {
   parseHandoff,
   validateInstructions,
   MAX_IMAGE_BYTES,
-} from "../server/utils/agent/validation";
+} from "../server/utils/agent/handoff/validation";
 import {
   createPublicLookup,
   isPublicAddress,
@@ -37,12 +37,12 @@ import {
   readImageBytes,
   validatePng,
   downloadImage,
-} from "../server/utils/agent/image";
-import { validateAgentHandoff } from "../server/utils/agent/submission-validation";
+} from "../server/utils/agent/handoff/image";
+import { validateAgentHandoff } from "../server/utils/agent/handoff/submission-validation";
 import { requireCanvaUser } from "../server/utils/auth/requireCanvaUser";
 import { readAgentBody } from "../server/utils/agent/read-body";
 import { agentRequestError } from "../server/utils/agent/errors";
-import { validateGatherRequirements } from "../server/utils/agent/submission-validation";
+import { validateGatherRequirements } from "../server/utils/agent/handoff/submission-validation";
 import { designRequestResponse } from "../server/utils/agent/design-request";
 import { getCanvaVerifiers } from "../server/utils/agent/canva";
 

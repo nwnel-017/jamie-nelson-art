@@ -5,7 +5,7 @@ import { readAgentBody } from "@server/utils/agent/read-body";
 import { agentRequestError } from "@server/utils/agent/errors";
 import { designRequestResponse } from "@server/utils/agent/design-request";
 import { createVerificationModel } from "@server/utils/agent/model-factory";
-import { validateGatherRequirements } from "@server/utils/agent/submission-validation";
+import { validateGatherRequirements } from "@server/utils/agent/handoff/submission-validation";
 import { gatherRequirements } from "@server/services/gather-requirements.service";
 import { analysisLimit } from "@server/utils/agent/analysis-config";
 

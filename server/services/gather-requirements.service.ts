@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "#types/supabase/database";
-import type { ValidatedHandoff } from "@server/utils/agent/submission-validation";
+import type { ValidatedHandoff } from "@server/utils/agent/handoff/submission-validation";
 import type { AiModel } from "@server/utils/agent/ai-model";
 import { VerificationAgent } from "@server/utils/agent/verification-agent";
 import { HandoffError } from "@server/utils/agent/errors";

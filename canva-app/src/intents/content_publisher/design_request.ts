@@ -227,7 +227,6 @@ export async function approveDesignRequest(
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      signal: AbortSignal.timeout(15000),
     },
   );
   if (!response.ok) {
@@ -242,6 +241,16 @@ export async function approveDesignRequest(
     throw new Error(message);
   }
   const result = await response.json();
-  if (result.success !== true || result.requestId !== id)
-    throw new Error("The portfolio did not confirm approval.");
+  if (
+    !result ||
+    result.success !== true ||
+    result.requestId !== id ||
+    !isRequestId(result.jobId) ||
+    !Number.isInteger(result.draft_version) ||
+    result.draft_version < 1 ||
+    !["queued", "running", "completed"].includes(result.status)
+  )
+    throw new Error(
+      "The portfolio did not confirm that technical planning was queued.",
+    );
 }

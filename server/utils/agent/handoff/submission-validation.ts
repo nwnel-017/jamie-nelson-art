@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HandoffError } from "./errors";
+import { HandoffError } from "../errors";
 import { parseHandoff, validateInstructions } from "./validation";
 import { verifyDesign, type CanvaVerifiers } from "./canva";
 import { downloadImage, validatePng } from "./image";

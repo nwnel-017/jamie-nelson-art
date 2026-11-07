@@ -21,7 +21,6 @@ export interface AiModel {
   generate(input: AiModelInput): Promise<AiModelResult>;
 }
 
-/** Wrap a provider-specific function without exposing its SDK to the handoff. */
 export class AiModelAdapter implements AiModel {
   constructor(
     private readonly generateText: (input: AiModelInput) => Promise<string>,

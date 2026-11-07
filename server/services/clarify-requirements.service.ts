@@ -7,7 +7,7 @@ import { HandoffError } from "@server/utils/agent/errors";
 import {
   parseClarificationSubmission,
   validateClarificationAnswers,
-} from "@server/utils/agent/submission-validation";
+} from "@server/utils/agent/handoff/submission-validation";
 import { submissionHash } from "@server/utils/agent/submission-hash";
 import { getDesignRequest } from "@server/services/design-requests.service";
 import {

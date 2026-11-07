@@ -255,12 +255,16 @@ test("an exhausted attempt budget shows an error and prevents another analysis",
 
 test("Approve calls execute and succeeds even when the analysis budget is exhausted", async () => {
   const approved = jest.fn();
-  const fetchMock = jest
-    .fn()
-    .mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true, requestId: designRequest.id }),
-    });
+  const fetchMock = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      success: true,
+      requestId: designRequest.id,
+      draft_version: 1,
+      jobId: "12345678-1234-4234-8234-123456789ddd",
+      status: "queued",
+    }),
+  });
   globalThis.fetch = fetchMock;
   renderInTestProvider(
     <ClarificationUi
@@ -330,3 +334,49 @@ test("answers and their submission ID survive remounts and retry the same POST",
   );
   clearWorkflow(key);
 });
+
+test.each([
+  { success: true, requestId: designRequest.id },
+  {
+    success: true,
+    requestId: designRequest.id,
+    draft_version: 1,
+    jobId: "invalid",
+    status: "queued",
+  },
+  {
+    success: true,
+    requestId: designRequest.id,
+    draft_version: 1,
+    jobId: "12345678-1234-4234-8234-123456789ddd",
+    status: "dispatching",
+  },
+  {
+    success: true,
+    requestId: designRequest.id,
+    draft_version: 1,
+    jobId: "12345678-1234-4234-8234-123456789ddd",
+    status: "failed",
+  },
+])(
+  "Approve does not complete publishing without an accepted technical planning job: %j",
+  async (result) => {
+    const approved = jest.fn();
+    globalThis.fetch = jest
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => result });
+    renderInTestProvider(
+      <ClarificationUi
+        request={{ ...designRequest, ready: true, clarifying_questions: [] }}
+        backendHost="https://portfolio.example"
+        onSubmitted={jest.fn()}
+        onApproved={approved}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await screen.findByText(
+      "The portfolio did not confirm that technical planning was queued.",
+    );
+    expect(approved).not.toHaveBeenCalled();
+  },
+);

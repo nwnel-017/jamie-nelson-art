@@ -1,5 +1,6 @@
+// TO DO --> agent/ has too many files. Lets group these by subfolders
 import { z } from "zod";
-import { HandoffError } from "./errors";
+import { HandoffError } from "../errors";
 
 export const MAX_BODY_BYTES = 64 * 1024;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -87,6 +88,7 @@ export function validateInstructions(value: string): string {
   return instructions;
 }
 
+// TO DO - review how images are being validated
 export function parseHandoff(value: unknown) {
   const result = schema.safeParse(value);
   if (!result.success)

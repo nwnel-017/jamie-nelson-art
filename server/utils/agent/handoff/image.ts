@@ -1,9 +1,11 @@
+// TO DO - verify --> is any of this really necessary? seems overkill
+// simplify this
 import { lookup } from "node:dns/promises";
 import { isIP, type LookupFunction } from "node:net";
 import ipaddr from "ipaddr.js";
 import { Agent, request, type Dispatcher } from "undici";
 import sharp from "sharp";
-import { HandoffError } from "./errors";
+import { HandoffError } from "../errors";
 import {
   MAX_IMAGE_BYTES,
   MAX_IMAGE_DIMENSION,

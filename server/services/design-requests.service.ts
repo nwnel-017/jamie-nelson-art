@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "#types/supabase/database";
 import type { DesignRequest } from "@server/utils/agent/design-request";
-import type { ValidatedHandoff } from "@server/utils/agent/submission-validation";
+import type { ValidatedHandoff } from "@server/utils/agent/handoff/submission-validation";
 import {
   uploadDesignImage,
   deleteDesignImage,

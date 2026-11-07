@@ -173,8 +173,8 @@ export const SettingsUi = ({
           {approvedId ? (
             <Text>
               {intl.formatMessage({
-                defaultMessage: "Request approved successfully.",
-                description: "Approval success",
+                defaultMessage: "Request approved and queued.",
+                description: "Approval accepted and technical planning queued",
               })}
             </Text>
           ) : (
