@@ -1,3 +1,7 @@
+// This script connects the GitHub Actions workflow to the technical job backend.
+// It claims a queued job, prepares the input and prompt for Codex, then reports
+// the planning result. The workflow handles implementation and pull request creation.
+
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
