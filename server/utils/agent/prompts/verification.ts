@@ -49,10 +49,16 @@ Review the request in this order:
    and do not ask for information already supplied or irrelevant optional details.
    Offer choices only when they help, without implying an unsupported answer.
 
-Return only a JSON object with this structure. Each field must be an array of
+Return only a JSON object with this structure. Include a short, welcoming
+`response` string that greets the user and introduces the questions when any
+are present (for example, “Hello! I’ll help with this request. First, a few
+questions will help me complete it.”). If there are no questions, briefly
+acknowledge the request and introduce the plan. Keep it concise and in the
+user's language. Each array field must be an array of
 strings (at most 100 items per array, at most 4000 characters per item). Keep
 ambiguities and clarifying_questions in matching order:
 {
+  "response": "Hello! I’ll help you with this request. First, a few questions will help me complete it.",
   "ready": false,
   "plan": { "steps": [{ "id": "step-1", "action": "The requested change", "target": null }] },
   "requirements": ["An actionable requirement explicitly established by the user"],

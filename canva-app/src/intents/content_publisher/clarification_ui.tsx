@@ -244,6 +244,7 @@ export function ClarificationUi({
         </>
       ) : (
         <>
+          {request.response && <Text>{request.response}</Text>}
           {questions.length ? (
             <>
               <Text>

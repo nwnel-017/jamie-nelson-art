@@ -1,3 +1,5 @@
+// TO DO: tweak prompt for better results
+
 export const TECHNICAL_PLANNING_PROMPT = `
 # Technical design planning — technical-instructions-v1
 

@@ -266,8 +266,43 @@ redispatch blindly.
 The execute request returns after queuing; it has no application-level timeout and
 does not wait for Codex. GitHub/provider platform limits still apply. One attempt
 means one Codex invocation; transport reconnects inside Codex are not separate jobs.
-Canva confirms the request was approved and queued, then its final Publish completes.
-No additional approval screen, automatic code execution, merge, or deployment exists.
+Canva confirms the request was queued with the message “Your agent is working on
+your request. You will be sent an email when it is ready to review.” The final
+Canva Publish completes once approval is accepted.
+
+After the implementation workflow opens or updates the design PR, it explicitly
+dispatches `verify-design-pr.yml`. This avoids relying on a `pull_request` event
+from a PR created with `GITHUB_TOKEN`. The verifier runs the documented backend and
+Canva checks against the current PR head on a runner with no model credentials, then
+runs a read-only Codex review on a separate runner only if those checks pass.
+Blocking findings or failed checks go to the same isolated Codex repair step. A
+separate publisher job applies the repair patch to the design branch
+and dispatches verification again. The cycle allows at most two automated repairs;
+after that, the workflow fails and leaves the PR for human attention. A clean review
+does not merge or deploy the PR; it simply ends automated verification.
+
+After CI passes and the review reports no blocking findings, the isolated
+`notify-admin` job confirms the PR still points to the reviewed commit and sends a
+ready-to-review email through Resend. It includes both the preview and PR links. Until
+the Vercel preview URL is configured, the message uses the placeholder
+`https://vercel-preview-placeholder.example.com`. Set the GitHub Actions variable
+`DESIGN_PREVIEW_URL` to replace it, and configure Actions secrets `RESEND_API_KEY`,
+`RESEND_FROM_EMAIL`, and `ADMIN_EMAIL`. Resend request idempotency is keyed by PR and
+commit SHA to prevent duplicate emails on retries.
+
+Verification runs are serialized per design and canceled when superseded. Each run
+re-reads the PR head and refuses to publish a repair if the branch advanced while
+Codex was working. The reviewer instructions live in
+`server/utils/agent/prompts/review-implementation.ts`; findings use
+`.github/codex/implementation-review.schema.json`. The repair prompt is in
+`server/utils/agent/prompts/repair-verification.ts`.
+
+The verifier uses GitHub's `GITHUB_TOKEN` to dispatch itself after publishing the
+initial PR and after each repair. The implementation workflow therefore needs
+`actions: write` in addition to its existing contents and pull-request permissions.
+Set the repository Actions variable `CODEX_MODEL` if the default `gpt-5.4` is not
+the desired model. Planning, implementation, review, and repair Codex runs use the
+existing `OPENAI_API_KEY` secret.
 
 Run `npm run test:planning` for dispatch/identity/schema/worker tests and
 `npm run test:planning:integration` for local-only Supabase transaction tests.

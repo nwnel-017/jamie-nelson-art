@@ -173,8 +173,10 @@ export const SettingsUi = ({
           {approvedId ? (
             <Text>
               {intl.formatMessage({
-                defaultMessage: "Request approved and queued.",
-                description: "Approval accepted and technical planning queued",
+                defaultMessage:
+                  "Your agent is working on your request. You will be sent an email when it is ready to review.",
+                description:
+                  "Approval accepted and work queued for the agent",
               })}
             </Text>
           ) : (

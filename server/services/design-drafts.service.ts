@@ -20,7 +20,7 @@ export async function getDesignDraft(
   let query = supabase
     .from("design_analyses")
     .select(
-      "id, design_request_id, version, plan, requirements, ambiguities, clarifying_questions, answers, ready, submission_id, created_at",
+      "id, design_request_id, version, plan, response, requirements, ambiguities, clarifying_questions, answers, ready, submission_id, created_at",
     )
     .eq("status", "completed")
     .eq("design_request_id", id);

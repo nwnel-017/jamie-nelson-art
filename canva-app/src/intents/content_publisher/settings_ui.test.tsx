@@ -185,7 +185,9 @@ test("an initially ready result shows Approve and approval clears the saved work
       }),
     }),
   );
-  await screen.findByText("Request approved and queued.");
+  await screen.findByText(
+    "Your agent is working on your request. You will be sent an email when it is ready to review.",
+  );
   expect(loadWorkflow("test-scope")).toBeUndefined();
   await waitFor(() =>
     expect(updatePublishSettings).toHaveBeenLastCalledWith(

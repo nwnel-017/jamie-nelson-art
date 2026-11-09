@@ -193,6 +193,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
       pull-requests: write
     steps:
       - name: Check out selected execution base
@@ -232,9 +233,13 @@ jobs:
           existing=$(gh pr list --base "$BASE_BRANCH" --head "$branch" --json number --jq '.[0].number // empty')
           if [[ -n "$existing" ]]; then
             gh pr edit "$existing" --title "Update design ${DESIGN_ID}" --body "Updated by technical design job ${JOB_ID}. Please review the latest changes."
+            pr_number="$existing"
           else
             gh pr create --base "$BASE_BRANCH" --head "$branch" --title "Design ${DESIGN_ID}" --body "Automated implementation from technical design job ${JOB_ID}. Please review before merging."
+            pr_number=$(gh pr list --base "$BASE_BRANCH" --head "$branch" --json number --jq '.[0].number')
           fi
+          gh workflow run verify-design-pr.yml --ref "$BASE_BRANCH" \\
+            -f pr_number="$pr_number" -f design_id="$DESIGN_ID" -f repair_count=0
 
   report:
     needs: [claim, plan]

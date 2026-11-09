@@ -37,6 +37,7 @@ export interface DesignDraft {
   design_request_id: string;
   version: number;
   plan: DesignPlan;
+  response: string;
   requirements: string[];
   ambiguities: string[];
   clarifying_questions: DraftQuestion[];
@@ -48,6 +49,7 @@ export interface DesignDraft {
 
 export const verificationResultSchema = z
   .object({
+    response: z.string().trim().min(1).max(1000),
     requirements: items,
     ambiguities: items,
     clarifying_questions: items,
@@ -67,6 +69,7 @@ export const verificationResultSchema = z
 
 export const draftAnalysisSchema = z
   .object({
+    response: z.string().trim().min(1).max(1000),
     requirements: items,
     ambiguities: items,
     clarifying_questions: items,

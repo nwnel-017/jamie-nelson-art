@@ -2,6 +2,7 @@ import { AiModelAdapter, type AiModel } from "./ai-model";
 import type { VerificationResult } from "./design-request";
 
 const response: VerificationResult = {
+  response: "Hello! I’ll help you with this request. First, a few questions will help me complete it.",
   ready: false,
   plan: {
     steps: [
@@ -44,6 +45,9 @@ export function createTestModel(): AiModel {
           ),
       );
     return JSON.stringify({
+      response: vague
+        ? "Thanks for your answers. One detail still needs clarification before I can finalize the plan."
+        : "Thanks, I have enough detail now. Please review the plan.",
       requirements: input.draft.requirements,
       ambiguities: vague ? ["The exact target page is still unclear."] : [],
       clarifying_questions: vague

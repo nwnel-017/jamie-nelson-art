@@ -70,9 +70,12 @@ banner with the custom submission message.
 Clarification rounds POST answers to `/api/agent/clarify-requirements/:id` and
 render the returned draft directly. Ready drafts show an explicit Approve button,
 which sends a bodyless POST to `/api/agent/execute/:id`. Approval queues the GitHub
-Actions technical planner and confirms the request is approved and queued; it does
-not wait for planning or execute website changes. Publish remains disabled until
-that approval response is accepted. See the root README for worker setup.
+Actions technical planner and confirms the request is queued. Canva then displays
+“Your agent is working on your request. You will be sent an email when it is ready
+to review.” It does not wait for planning or execute website changes. Publish
+remains disabled until that approval response is accepted. After CI and the
+automated review pass, the GitHub workflow emails the admin the preview and PR
+links. See the root README for Resend configuration.
 There are no GET/polling requests. The latest response, answer edits, and retry IDs
 are cached in local storage scoped to the Canva app, user, team, design, and backend.
 The saved workflow is cleared on approval or when starting a new request.

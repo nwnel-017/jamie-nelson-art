@@ -13,6 +13,7 @@ export interface DesignDraft {
   version: number;
   ready: boolean;
   plan: DesignPlan;
+  response: string;
   clarifying_questions: { id: string; question: string }[];
 }
 export interface ClarificationSubmission {
@@ -32,6 +33,7 @@ export class DesignAnalysisError extends Error {
 export interface DesignRequest {
   id: string;
   ready?: boolean;
+  response?: string;
   plan?: DesignPlan;
   draft?: DesignDraft | null;
   draft_version?: number;
