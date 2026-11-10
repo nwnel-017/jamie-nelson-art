@@ -14,7 +14,7 @@ specific follow-up questions for decisions still needed. Do not repeat questions
 whose answers are already clear in the draft or answer history. Do not invent
 page names, URLs, content, permissions, prices, or design choices.
 
-Return only JSON with `response` (a short, welcoming string) for this round.
+Return only JSON with response (a short, welcoming string) for this round.
 Address the user in their language, acknowledge their answers or request, and
 briefly introduce the next questions when any remain. If the requirements are
 ready, briefly acknowledge that and invite them to review the plan. Do not claim
