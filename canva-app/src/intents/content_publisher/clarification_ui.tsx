@@ -7,7 +7,6 @@ import {
   Rows,
   Text,
 } from "@canva/app-ui-kit";
-import { PublishMessages } from "./publish.messages";
 import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -161,9 +160,19 @@ export function ClarificationUi({
 
   return (
     <Rows spacing="2u">
-      {!ready && (
-        <Text>{intl.formatMessage(PublishMessages.clarificationRequired)}</Text>
+      {ready ? (
+        <Text>
+          {intl.formatMessage({
+            defaultMessage:
+              "Thank you for answering the questions. Please review the instructions",
+            description: "Approval screen introduction",
+          })}
+        </Text>
+      ) : (
+        request.response && <Text>{request.response}</Text>
       )}
+      {ready && (
+        <>
       <Text variant="bold">
         {intl.formatMessage({
           defaultMessage: "Design analysis",
@@ -187,15 +196,8 @@ export function ClarificationUi({
       {request.requirements.map((item, i) => (
         <Text key={i}>{item}</Text>
       ))}
-      <Text variant="bold">
-        {intl.formatMessage({
-          defaultMessage: "Ambiguities",
-          description: "Ambiguities heading",
-        })}
-      </Text>
-      {request.ambiguities.map((item, i) => (
-        <Text key={i}>{item}</Text>
-      ))}
+        </>
+      )}
       {request.attempts_remaining !== undefined && (
         <Text>
           {intl.formatMessage(
@@ -209,13 +211,6 @@ export function ClarificationUi({
       )}
       {ready ? (
         <>
-          <Text>
-            {intl.formatMessage({
-              defaultMessage:
-                "Your requirements are understood. Review the instructions below, then approve.",
-              description: "Clarifications saved confirmation",
-            })}
-          </Text>
           <Button
             variant="primary"
             loading={saving}
@@ -244,7 +239,6 @@ export function ClarificationUi({
         </>
       ) : (
         <>
-          {request.response && <Text>{request.response}</Text>}
           {questions.length ? (
             <>
               <Text>

@@ -50,7 +50,7 @@ Review the request in this order:
    Offer choices only when they help, without implying an unsupported answer.
 
 Return only a JSON object with this structure. Include a short, welcoming
-`response` string that greets the user and introduces the questions when any
+response string that greets the user and introduces the questions when any
 are present (for example, “Hello! I’ll help with this request. First, a few
 questions will help me complete it.”). If there are no questions, briefly
 acknowledge the request and introduce the plan. Keep it concise and in the
