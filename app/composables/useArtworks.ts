@@ -30,6 +30,8 @@ export function useArtworks() {
     collection: string,
     artwork_note: string,
     cover_image: boolean,
+    year = "",
+    medium = "",
   ) => {
     // Validation
     if (
@@ -58,6 +60,14 @@ export function useArtworks() {
 
     if (artwork_note) {
       formData.append("artwork_note", artwork_note);
+    }
+
+    if (year) {
+      formData.append("year", year);
+    }
+
+    if (medium) {
+      formData.append("medium", medium);
     }
 
     try {

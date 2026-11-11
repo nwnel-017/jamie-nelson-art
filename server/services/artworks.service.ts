@@ -50,6 +50,8 @@ async function addArtwork(
         description: artwork.description,
         price: parsedPrice,
         dimensions: artwork.dimensions,
+        year: artwork.year ? Number(artwork.year) : null,
+        medium: artwork.medium || null,
         collection_id: artwork.collection,
         artwork_note: artwork.artwork_note || "",
         image_path: imageUrl,
@@ -125,6 +127,8 @@ async function updateArtwork(
         description: artwork.description,
         price: parsedPrice,
         dimensions: artwork.dimensions,
+        year: artwork.year ? Number(artwork.year) : null,
+        medium: artwork.medium || null,
         artwork_note: artwork.artwork_note || "",
         cover_image: artwork.cover_image || false,
       })

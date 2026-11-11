@@ -39,6 +39,9 @@ export default defineEventHandler(async (event) => {
       "",
     dimensions:
       form.find((field) => field.name === "dimensions")?.data?.toString() || "",
+    year: form.find((field) => field.name === "year")?.data?.toString() || "",
+    medium:
+      form.find((field) => field.name === "medium")?.data?.toString() || "",
     price: form.find((field) => field.name === "price")?.data?.toString() || "",
     collection:
       form.find((field) => field.name === "collection")?.data?.toString() || "",
