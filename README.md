@@ -96,22 +96,3 @@ The project expects environment variables for:
 ## Summary
 
 This project was designed as a real-world artwork portfolio for a working artist, with a strong emphasis on presentation, maintainability, and direct online sales. It reflects a full-stack TypeScript approach using Nuxt, Nitro, Supabase, PostgreSQL, and Stripe to deliver both the gallery experience and the supporting commerce workflow.
-
-## Tests
-
-- `npm test`: HTTP route integration tests with simulated Supabase and Stripe boundaries. Exercises real artwork read services and real payment order processing; admin write tests exercise authorization, form handling, and the real save services against a simulated Supabase HTTP boundary.
-- `npm run test:e2e`: Chromium visits the portfolio and artwork details using a local Supabase HTTP fixture, including image loading. Install Chromium with `npx playwright install chromium` first. No payment browser tests.
-- `npm run test:rls`: real Supabase Auth and database table policy tests. Requires a disposable local Supabase stack. This suite creates test users and rows and removes them afterward; it rejects remote URLs.
-
-For RLS tests, start Docker and run `supabase start`, then export the local credentials:
-
-```sh
-eval "$(supabase status -o env)"
-TEST_SUPABASE_URL="$API_URL" TEST_SUPABASE_ANON_KEY="$ANON_KEY" TEST_SUPABASE_SERVICE_KEY="$SERVICE_ROLE_KEY" npm run test:rls
-```
-
-Use `TEST_ADMIN_EMAIL` if your local admin policy expects a specific email. The default is `admin@example.test`; it must not already exist in local Auth. The suite intentionally asserts anonymous read access to public content, anonymous write denial, private order/webhook data, and signed-in admin content management. Bucket policies and separate non-admin accounts are outside the current scope.
-
-GitHub Actions runs integration tests, the production build, browser tests, and a separate local Supabase RLS job. No live Stripe or hosted Supabase credentials are required.
-
-The unique Stripe event-ID migration intentionally stops if existing webhook records contain duplicate IDs. Before applying it to a shared database, inspect duplicates with `select event_id, count(*) from public.webhook_event group by event_id having count(*) > 1;` and reconcile them. It does not silently delete payment history.
