@@ -26,3 +26,9 @@ logs
 
 # Cursor config
 .cursor
+
+# Test output
+playwright-report/
+test-results/
+supabase/.temp/
+supabase/.branches/

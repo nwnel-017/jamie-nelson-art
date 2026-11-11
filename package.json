@@ -9,7 +9,9 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "webhook": "stripe listen --forward-to http://localhost:3000/api/stripe/webhook"
+    "webhook": "stripe listen --forward-to http://localhost:3000/api/stripe/webhook",
+    "test:rls": "vitest run --config vitest.rls.config.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@meforma/vue-toaster": "^1.3.0",
@@ -32,6 +34,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "typescript": "^5.9.3",
     "vitest": "^5.1.0"
   }
