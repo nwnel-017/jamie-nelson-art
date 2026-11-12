@@ -17,17 +17,17 @@ const { startLoading, stopLoading } = useLoading();
 const {
   data: stats,
   pending: loadingStats,
-  error: statsError,
+
 } = await getStats();
 const {
   data: artworks,
   pending: loadingArtworks,
-  error: artworksError,
+
 } = await getArtworks();
 const {
   data: orders,
   pending: loadingOrders,
-  error: ordersError,
+
 } = await getOrders();
 
 const isLoading = computed(
@@ -45,7 +45,7 @@ watch(isLoading, (loading) => {
 
 <template>
   <div class="verticalMargin">
-    <div v-if="isLoading"></div>
+    <div v-if="isLoading" />
     <div v-else>
       <section>
         <div><h3>Dashboard Overview</h3></div>

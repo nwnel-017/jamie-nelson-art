@@ -11,6 +11,14 @@
   </a>
 </template>
 
+<script setup lang="ts">
+import Instagram from "~/assets/icons/instagram.svg";
+
+const props = defineProps<{
+  size?: "sm" | "md" | "lg";
+}>();
+</script>
+
 <style scoped>
 .igIcon {
   color: var(--text-color);
@@ -49,11 +57,3 @@ a {
   }
 }
 </style>
-
-<script setup lang="ts">
-import Instagram from "~/assets/icons/instagram.svg";
-
-const props = defineProps<{
-  size?: "sm" | "md" | "lg";
-}>();
-</script>

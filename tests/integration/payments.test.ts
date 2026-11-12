@@ -5,12 +5,18 @@ import webhook from "../../server/api/stripe/webhook.post";
 import checkout from "../../server/api/stripe/create-checkout-session.post";
 import { serverSupabaseClient } from "../helpers/supabase";
 const state = vi.hoisted(() => ({
+  paymentsEnabled: true,
   events: {} as Record<string, Record<string, unknown>>,
   otherOrder: { id: "order-other", stripe_payment_intent_id: "pi_other", status: "PAID" } as Record<string, unknown>,
   orderWrites: 0,
   soldWrites: 0,
   order: null as null | Record<string, unknown>,
   sold: false,
+}));
+vi.mock("@utils/payments", () => ({
+  get paymentsEnabled() {
+    return state.paymentsEnabled;
+  },
 }));
 const checkoutCreate = vi.hoisted(() =>
   vi.fn(async (_params: Stripe.Checkout.SessionCreateParams) => ({ url: "https://checkout.stripe.test/session" })),
@@ -84,6 +90,7 @@ const database = {
   },
 };
 beforeEach(() => {
+  state.paymentsEnabled = true;
   state.events = {};
   state.otherOrder = { id: "order-other", stripe_payment_intent_id: "pi_other", status: "PAID" };
   state.orderWrites = 0;
@@ -189,4 +196,13 @@ it("updates the matching order when Stripe sends a refund", async () => {
   });
   expect(state.orderWrites).toBe(1);
   expect(state.otherOrder.status).toBe("PAID");
+});
+
+it("rejects checkout while payments are disabled", async () => {
+  state.paymentsEnabled = false;
+  const response = await endpoint("/checkout", checkout, "post")(
+    new Request("http://localhost/checkout", { method: "POST" }),
+  );
+  expect(response.status).toBe(503);
+  expect(checkoutCreate).not.toHaveBeenCalled();
 });

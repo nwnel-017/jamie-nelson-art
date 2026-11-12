@@ -4,6 +4,16 @@ import type { DropDown } from "#types/dropdown/dropdown";
 defineProps<{ label: string; items: DropDown[] }>();
 
 const isOpen = ref(false);
+const dropdown = ref<HTMLElement | null>(null);
+
+function handleOutsideClick(event: MouseEvent) {
+  if (event.target instanceof Node && !dropdown.value?.contains(event.target)) {
+    closeOptions();
+  }
+}
+
+onMounted(() => document.addEventListener("click", handleOutsideClick));
+onUnmounted(() => document.removeEventListener("click", handleOutsideClick));
 
 const toggle = () => {
   isOpen.value = !isOpen.value;
@@ -25,7 +35,7 @@ const selectItem = (item: DropDown) => {
 </script>
 
 <template>
-  <div class="dropdown" @click.outside="closeOptions">
+  <div ref="dropdown" class="dropdown">
     <div class="dropdownContainer">
       <Button @click.stop="toggle">{{ label }}</Button>
       <div v-show="isOpen" class="dropdownOptions" :class="{ active: isOpen }">
@@ -39,7 +49,7 @@ const selectItem = (item: DropDown) => {
         </div>
       </div>
     </div>
-    <span></span>
+    <span />
   </div>
 </template>
 

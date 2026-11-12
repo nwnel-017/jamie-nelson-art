@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 type Direction = "up" | "down" | "left" | "right";
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     direction?: Direction;
     size?: string;
@@ -22,10 +22,10 @@ const rotationMap: Record<Direction, string> = {
 
 <template>
   <svg
+    id="XMLID_287_"
     height="800px"
     width="800px"
     version="1.1"
-    id="XMLID_287_"
     xmlns="http://www.w3.org/2000/svg"
     xmlns:xlink="http://www.w3.org/1999/xlink"
     viewBox="0 0 24 24"

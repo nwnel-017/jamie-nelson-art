@@ -1,7 +1,5 @@
-import { z } from "zod";
 import type { MultiPartData } from "h3";
 import type { ArtworkData } from "#types/artworks/artworks";
-import type { UploadInput } from "~~/server/services/storage.service";
 import {
   artworkFormSchema,
   existingArtworkFormSchema,

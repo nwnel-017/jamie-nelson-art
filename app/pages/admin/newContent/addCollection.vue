@@ -36,7 +36,7 @@ async function submit() {
     <h1>Add Collection</h1>
     <div class="spaced">
       <label for="title">New Collection:</label>
-      <input type="text" v-model="newCollection" />
+      <input v-model="newCollection" type="text" >
     </div>
     <Button class="buttonCol" @click="submit">Submit</Button>
   </div>

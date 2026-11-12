@@ -1,17 +1,16 @@
 import { addArtwork } from "@server/services/artworks.service";
 import { validateNewArtworkForm } from "@utils/validation/form";
 import { serverSupabaseClient } from "#supabase/server";
-import { SupabaseClient } from "@supabase/supabase-js";
-import { Database } from "#types/supabase/database";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "#types/supabase/database";
 import { requireAdmin } from "@server/utils/auth/requireAdmin";
-import { UploadInput } from "~~/server/services/storage.service";
+import type { UploadInput } from "~~/server/services/storage.service";
 import type { ArtworkData } from "#types/artworks/artworks";
-import { fi } from "zod/locales";
 import { extractArtworkFormData } from "~~/server/utils/form/artworkForm";
 import { validateImageFile } from "~~/utils/validation/image";
 
 export default defineEventHandler(async (event) => {
-  const adminUser = await requireAdmin(event);
+  await requireAdmin(event);
   const form = await readMultipartFormData(event); // MultiPartData[]
 
   if (!form) {

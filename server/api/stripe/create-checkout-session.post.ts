@@ -1,8 +1,12 @@
+import { paymentsEnabled } from "@utils/payments";
 import { Stripe } from "stripe";
 import { serverSupabaseClient } from "#supabase/server";
 import { getArtworkPrice } from "@server/services/artworks.service";
 
 export default defineEventHandler(async (event) => {
+  if (!paymentsEnabled) {
+    throw createError({ statusCode: 503, statusMessage: "Payments are temporarily unavailable" });
+  }
   const config = useRuntimeConfig();
   const stripe = new Stripe(config.stripeSecretKey);
   const currency = "usd";

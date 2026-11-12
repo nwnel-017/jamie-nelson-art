@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import InstagramIcon from "./icons/InstagramIcon.vue";
+defineOptions({ name: "SiteFooter" });
 </script>
 
 <template>

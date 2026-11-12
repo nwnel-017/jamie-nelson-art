@@ -8,8 +8,6 @@ const props = defineProps<{
   collection?: CollectionDetails;
 }>();
 
-const displayArtworkPopup = ref(false);
-const selectedArtwork = ref<ArtworkRow | null>(null);
 const imagesLoaded = ref(0);
 
 const allImagesLoaded = computed(() => {
@@ -22,10 +20,6 @@ function loadImage() {
   imagesLoaded.value++;
 }
 
-function closePopup() {
-  selectedArtwork.value = null;
-  displayArtworkPopup.value = false;
-}
 
 async function viewArtwork(id: string) {
   // if (sold) return;
@@ -44,8 +38,8 @@ async function viewArtwork(id: string) {
     <div
       v-for="artwork in props.artworks"
       :key="artwork.id"
-      @click="viewArtwork(artwork.id)"
       class="artworkContainer clickable"
+      @click="viewArtwork(artwork.id)"
     >
       <div class="imageWrapper">
         <NuxtImg
@@ -57,8 +51,8 @@ async function viewArtwork(id: string) {
           width="80"
           height="80"
           sizes="80px"
-          @load="loadImage"
           :class="{ visible: allImagesLoaded }"
+          @load="loadImage"
         />
         <Lottie
           v-if="!allImagesLoaded"
