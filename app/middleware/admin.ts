@@ -5,11 +5,9 @@
 // when the serve side middleware retrieves the token - it is in a refresh loop and is expired
 // supabase rate limit is reached from too many refresh token requests`
 
-export default defineNuxtRouteMiddleware(async (to) => {
+export default defineNuxtRouteMiddleware(async () => {
   // this route - if token is expired - the server should refresh it
   console.log("Running admin middleware");
-  const nuxtApp = useNuxtApp();
-  const config = useRuntimeConfig();
   // const supabase = useSupabaseClient();
   // const user = useSupabaseUser(); // problem - this doesnt refresh the session - serverSupabaseUser() does
 

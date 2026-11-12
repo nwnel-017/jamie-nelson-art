@@ -11,8 +11,8 @@ const id = computed(() => route.params.id as string);
 
 const {
   data: artwork,
-  pending: pendingArtwork,
-  error,
+
+
 } = await useFetch<ArtworkRow>(`/api/artworks/${id.value}`);
 
 async function payWithStripe() {
@@ -35,7 +35,7 @@ async function payWithStripe() {
     console.log(
       "There was an error retrieving Stripe checkout session: " + err,
     );
-    throw new Error("Failed to retrieve stripe checkout session");
+    throw new Error("Failed to retrieve stripe checkout session", { cause: err });
   }
 }
 </script>

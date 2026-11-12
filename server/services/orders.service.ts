@@ -1,9 +1,7 @@
-import { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "#types/supabase/database";
 import type { ShippingDetail } from "@utils/validation/stripe";
 import { markArtworkAsSold } from "./artworks.service";
-import { id } from "zod/locales";
-import { PaymentIntent } from "@stripe/stripe-js";
 
 export async function getOrders(supabase: SupabaseClient<Database>) {
   if (!supabase) {
@@ -128,7 +126,7 @@ export async function createOrder(
     await markArtworkAsSold(supabase, artworkId);
   } catch (err) {
     console.log("Something went wrong: " + err);
-    throw new Error("Failed to create order!");
+    throw new Error("Failed to create order!", { cause: err });
   }
 }
 

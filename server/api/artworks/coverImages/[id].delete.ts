@@ -3,7 +3,7 @@ import { deleteCoverImage } from "~~/server/services/artworks.service";
 import { requireAdmin } from "@server/utils/auth/requireAdmin";
 
 export default defineEventHandler(async (event) => {
-  const admin = await requireAdmin(event);
+  await requireAdmin(event);
 
   const id = event.context.params?.id as string;
 

@@ -3,8 +3,6 @@ import { updateArtwork } from "@server/services/artworks.service";
 import { serverSupabaseClient } from "#supabase/server";
 import { validateNewArtworkForm } from "@utils/validation/form";
 import type { ArtworkData } from "#types/artworks/artworks";
-import type { UploadInput } from "#types/files/files";
-import { extractArtworkFormData } from "~~/server/utils/form/artworkForm";
 
 export default defineEventHandler(async (event) => {
   console.log("updating artwork!");
@@ -66,6 +64,6 @@ export default defineEventHandler(async (event) => {
     return { success: true };
   } catch (err) {
     console.log("error updating artwork: " + err);
-    throw new Error("Failed to update artist!");
+    throw new Error("Failed to update artist!", { cause: err });
   }
 });

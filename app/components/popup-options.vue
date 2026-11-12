@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-const props = defineProps<{
+defineProps<{
   items: string[];
 }>();
 
@@ -14,7 +14,7 @@ function selectItem(item: string) {
 </script>
 
 <template>
-  <div class="overlay" @click.self.stop="emit('cancel')"">
+  <div class="overlay" @click.self.stop="emit('cancel')">
     <div class="modal">
     <div class="submissionForm">
       <h1>New Order Status</h1>
@@ -22,12 +22,12 @@ function selectItem(item: string) {
         <Button
           v-for="item in items"
           :key="item"
-          @click="selectItem(item)"
           variant="secondary"
+          @click="selectItem(item)"
           >{{ item }}</Button
         >
       <!-- </div> -->
-      <Button @click="emit('cancel')" variant="danger">Cancel</Button>
+      <Button variant="danger" @click="emit('cancel')">Cancel</Button>
     </div>
     </div>
   </div>

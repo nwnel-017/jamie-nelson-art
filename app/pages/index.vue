@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import type { Artwork } from "~~/types/artworks/artworks";
 import type { CoverImageRow } from "~~/types/supabase/tables";
 
 definePageMeta({

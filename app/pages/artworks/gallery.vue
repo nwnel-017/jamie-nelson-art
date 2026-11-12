@@ -16,8 +16,8 @@ useSeoMeta({
 
 const {
   data: artworks,
-  pending,
-  error,
+
+
 } = await useFetch<ArtworkRow[]>("/api/artworks/artworks");
 </script>
 

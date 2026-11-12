@@ -1,4 +1,4 @@
-import { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "#types/supabase/database";
 import type { ArtworkData } from "#types/artworks/artworks";
 import type { UploadInput } from "./storage.service";
@@ -57,7 +57,7 @@ async function addArtwork(
       })
       .select("id");
 
-    if (error) {
+    if (error || !data?.[0]) {
       console.error("Error inserting artwork into database:", error); // error is null?
       throw createError({
         statusCode: 500,
@@ -115,7 +115,7 @@ async function updateArtwork(
     parsedPrice = Number(artwork.price);
   } catch (err) {
     console.log("Error parsing price: " + err);
-    throw new Error("Invalid price value!");
+    throw new Error("Invalid price value!", { cause: err });
   }
   try {
     await supabase
@@ -163,7 +163,7 @@ async function deleteArtwork(supabase: SupabaseClient<Database>, id: string) {
     await deleteFile(supabase, artwork.image_path, "artwork_images");
   } catch (err) {
     console.log("Failed to delete file: " + err);
-    throw new Error("Failed to delete artwork image");
+    throw new Error("Failed to delete artwork image", { cause: err });
   }
 
   // delete gallery images if they exist
@@ -184,7 +184,7 @@ async function deleteArtwork(supabase: SupabaseClient<Database>, id: string) {
     );
   } catch (err) {
     console.log("Failed to delete gallery images: " + err);
-    throw new Error("Failed to delete images from storage!");
+    throw new Error("Failed to delete images from storage!", { cause: err });
   }
 
   const { error: deleteGalleryError } = await supabase
@@ -497,7 +497,7 @@ async function addCoverImage(
     }
   } catch (err) {
     console.log("Failed to upload gallery image:", err);
-    throw new Error("Failed to upload gallery image!");
+    throw new Error("Failed to upload gallery image!", { cause: err });
   }
 }
 
@@ -517,7 +517,9 @@ async function getArtworkForCollection(
     .order("created_at", { ascending: false })
     .limit(1);
 
-  if (error || !artworks || artworks.length === 0) {
+  const artwork = artworks?.[0];
+
+  if (error || !artwork) {
     throw createError({
       statusCode: 500,
       statusMessage: "Internal Error",
@@ -527,8 +529,6 @@ async function getArtworkForCollection(
       },
     });
   }
-
-  const artwork = artworks[0];
 
   // Get public URL for the image
   if (artwork.image_path) {
@@ -600,7 +600,6 @@ async function getGalleryImages(
         const { data: publicData } = supabase.storage
           .from("gallery_images")
           .getPublicUrl(imagePath);
-        // @ts-ignore assign back
         row.image_path = publicData?.publicUrl ?? null;
       }
     });
@@ -642,7 +641,7 @@ async function deleteGalleryImage(
     await supabase.from("gallery_images").delete().eq("id", existingImage.id);
   } catch (err) {
     console.log("Failed to delete file: " + err);
-    throw new Error("Failed to delete the image!");
+    throw new Error("Failed to delete the image!", { cause: err });
   }
 }
 
@@ -680,7 +679,7 @@ async function deleteCoverImage(
     await supabase.from("cover_images").delete().eq("id", existingImage.id);
   } catch (err) {
     console.log("Failed to delete cover file: " + err);
-    throw new Error("Failed to delete the cover image!");
+    throw new Error("Failed to delete the cover image!", { cause: err });
   }
 }
 
@@ -692,7 +691,7 @@ async function deleteGalleryImagesForArtwork(
     throw new Error("Missing parameters!");
   }
 
-  const { data: gallery, error } = await supabase
+  const { error } = await supabase
     .from("gallery_images")
     .select("id, image_path")
     .eq("artwork_id", artworkId);
@@ -773,7 +772,7 @@ async function addGalleryImages(
       }
     } catch (err) {
       console.log("Failed to upload gallery image:", err);
-      throw new Error("Failed to upload gallery image!");
+      throw new Error("Failed to upload gallery image!", { cause: err });
     }
   }
 }
@@ -842,7 +841,7 @@ async function addGalleryImage(
     }
   } catch (err) {
     console.log("Failed to upload gallery image:", err);
-    throw new Error("Failed to upload gallery image!");
+    throw new Error("Failed to upload gallery image!", { cause: err });
   }
 }
 

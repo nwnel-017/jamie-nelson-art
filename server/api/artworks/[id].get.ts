@@ -1,8 +1,7 @@
-import { requireAdmin } from "@server/utils/auth/requireAdmin";
 import { serverSupabaseClient } from "#supabase/server";
 import { getArtworkDetails } from "@server/services/artworks.service";
-import { SupabaseClient } from "@supabase/supabase-js";
-import { Database } from "#types/supabase/database";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "#types/supabase/database";
 
 export default defineEventHandler(async (event) => {
   const id = event.context.params?.id as string;

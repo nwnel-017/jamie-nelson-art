@@ -1,4 +1,4 @@
-import { requireAdmin } from "#imports";
+import { requireAdmin } from "@server/utils/auth/requireAdmin";
 import { deleteArtwork } from "@server/services/artworks.service";
 import { serverSupabaseClient } from "#supabase/server";
 
@@ -15,6 +15,6 @@ export default defineEventHandler(async (event) => {
     return { success: true };
   } catch (err) {
     console.log("Error occured deleting artwork: " + err);
-    throw new Error("Failed to delete artwork!");
+    throw new Error("Failed to delete artwork!", { cause: err });
   }
 });

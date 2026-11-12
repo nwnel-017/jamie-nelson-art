@@ -37,7 +37,7 @@ async function removeCollection(id: string) {
     toast.success("Successfully deleted collection!");
     collections.value =
       collections.value?.filter((collection) => collection.id !== id) ?? [];
-  } catch (err) {
+  } catch {
     toast.error("Something went wrong!");
   } finally {
     stopLoading();

@@ -16,7 +16,7 @@ const { startLoading, stopLoading } = useLoading();
 
 const imagesLoaded = ref(false);
 
-const { data: artworks, error, pending } = await getArtworks();
+const { data: artworks, pending } = await getArtworks();
 
 watch(pending, (newVal) => {
   if (newVal) {
@@ -64,11 +64,10 @@ const editArtwork = (artworkId: string) => {
           <div class="header title">Title</div>
           <div class="header price">Price</div>
           <div class="header created">Created</div>
-          <div class="header"></div>
+          <div class="header" />
           <template
             v-for="artwork in artworks"
             :key="artwork?.id"
-            class="contentCard"
           >
             <div class="imageCell">
               <NuxtImg
@@ -90,8 +89,8 @@ const editArtwork = (artworkId: string) => {
             <div class="btnContainer">
               <Button
                 variant="secondary"
-                @click="editArtwork(artwork?.id)"
                 class="buttonCol"
+                @click="editArtwork(artwork?.id)"
                 >Edit</Button
               >
             </div>

@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { ref } from "vue";
-import { iso } from "zod";
 
 const isOpen = ref(false);
 
@@ -23,8 +22,8 @@ const closeNav = () => {
           <NuxtLink to="/" class="dashLink" @click="closeNav">HOME</NuxtLink>
           <NuxtLink
             to="/collections/collections"
-            @click="closeNav"
             class="dashLink"
+            @click="closeNav"
             >ORIGINAL ARTWORKS</NuxtLink
           >
           <NuxtLink to="/artworks/gallery" class="dashLink" @click="closeNav"
@@ -42,15 +41,15 @@ const closeNav = () => {
         </div>
       </div>
       <div
-        @click="toggleNav"
         class="hamburger"
         :class="{ open: isOpen }"
         role="button"
         :aria-expanded="isOpen"
+        @click="toggleNav"
       >
-        <span></span>
-        <span></span>
-        <span></span>
+        <span />
+        <span />
+        <span />
       </div>
     </div>
   </div>

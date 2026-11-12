@@ -96,3 +96,17 @@ The project expects environment variables for:
 ## Summary
 
 This project was designed as a real-world artwork portfolio for a working artist, with a strong emphasis on presentation, maintainability, and direct online sales. It reflects a full-stack TypeScript approach using Nuxt, Nitro, Supabase, PostgreSQL, and Stripe to deliver both the gallery experience and the supporting commerce workflow.
+
+## Code checks
+
+After installing dependencies, run `npm run check` to lint all source files and
+check the Nuxt application, Vue components, and server types. Run `npm run lint`
+or `npm run typecheck` separately for a focused report. `npm run lint:fix` applies
+automatic lint fixes; review its diff before committing.
+
+Nuxt generates the ESLint configuration and TypeScript projects during
+`postinstall` (`nuxt prepare`). Run `npx nuxt prepare` again after changing Nuxt
+configuration. Supabase environment values are needed to run the application;
+without them preparation and type checking may print missing-configuration
+warnings. Database declarations live in `types/supabase/database.ts` and should
+be saved as UTF-8.
