@@ -1,8 +1,11 @@
 <script lang="ts" setup>
+import { paymentsEnabled } from "@utils/payments";
 import type { ArtworkRow, GalleryRow } from "~~/types/supabase/tables";
 import VueEasyLightbox from "vue-easy-lightbox";
 import ArrowIcon from "~/components/icons/ArrowIcon.vue";
 import ZoomIn from "~/assets/icons/zoom-in.svg";
+
+const { confirmPayment } = usePayments();
 
 definePageMeta({ layout: "artist" });
 
@@ -177,10 +180,12 @@ const closeLightBox = () => {
         <div v-if="artwork?.artwork_note">
           <!-- <strong>*</strong> {{ artwork?.artwork_note }} -->
         </div>
-        <!-- <Button v-if="!artwork.sold" class="buttonCol" @click="confirmPayment"
-          >Buy Now</Button
-        >
-        <Button v-else disabled class="buttonCol">Sold</Button> -->
+        <template v-if="paymentsEnabled">
+          <Button v-if="!artwork.sold" class="buttonCol" @click="confirmPayment(id)">
+            Buy Now
+          </Button>
+          <Button v-else disabled class="buttonCol">Sold</Button>
+        </template>
       </div>
     </section>
   </div>

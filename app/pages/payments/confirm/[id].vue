@@ -1,5 +1,8 @@
 <script lang="ts" setup>
+import { paymentsEnabled } from "@utils/payments";
 import type { ArtworkRow } from "~~/types/supabase/tables";
+
+const { payWithStripe } = usePayments();
 
 useSeoMeta({
   title: "Confirm Payment",
@@ -15,29 +18,6 @@ const {
 
 } = await useFetch<ArtworkRow>(`/api/artworks/${id.value}`);
 
-async function payWithStripe() {
-  try {
-    const { url } = await $fetch<{ url: string }>(
-      "/api/stripe/create-checkout-session",
-      {
-        method: "POST",
-        body: {
-          artworkId: artwork?.value?.id,
-          artworkName: artwork?.value?.title,
-        },
-      },
-    );
-
-    if (url) {
-      window.location.href = url;
-    }
-  } catch (err) {
-    console.log(
-      "There was an error retrieving Stripe checkout session: " + err,
-    );
-    throw new Error("Failed to retrieve stripe checkout session", { cause: err });
-  }
-}
 </script>
 
 <template>
@@ -69,7 +49,12 @@ async function payWithStripe() {
         <h3>Order Total: ${{ artwork?.price }}</h3>
       </div>
       <div class="flexCenter">
-        <Button class="btn" @click="payWithStripe">Confirm</Button>
+        <Button
+          class="btn"
+          :disabled="!paymentsEnabled || !artwork?.title"
+          @click="artwork?.title && payWithStripe(artwork.id, artwork.title)"
+        >Confirm</Button>
+        <p v-if="!paymentsEnabled">Payments are temporarily unavailable.</p>
       </div>
     </div>
   </div>
