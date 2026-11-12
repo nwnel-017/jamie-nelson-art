@@ -12,7 +12,10 @@
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "typecheck": "nuxt typecheck",
-    "check": "npm run lint && npm run typecheck"
+    "check": "npm run lint && npm run typecheck",
+    "test": "vitest run",
+    "test:rls": "vitest run --config vitest.rls.config.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@nuxt/image": "^2.0.0",
@@ -37,6 +40,8 @@
     "@nuxt/eslint": "^1.17.0",
     "eslint": "^10.14.0",
     "typescript": "^5.9.3",
-    "vue-tsc": "^3.3.14"
+    "vue-tsc": "^3.3.14",
+    "@playwright/test": "^1.65.0",
+    "vitest": "^5.1.0"
   }
 }
