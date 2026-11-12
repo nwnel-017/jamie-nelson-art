@@ -9,12 +9,14 @@ export default defineConfig({
       url: "http://127.0.0.1:54399/health",
     },
     {
-      command: "npm run dev -- --host 127.0.0.1 --port 3010",
+      command: "npm run build && node .output/server/index.mjs",
       url: "http://127.0.0.1:3010/artworks/gallery",
       timeout: 120000,
       env: {
         SUPABASE_URL: "http://127.0.0.1:54399",
         SUPABASE_KEY: "test-only",
+        HOST: "127.0.0.1",
+        PORT: "3010",
         SUPABASE_DOMAIN: "127.0.0.1",
         STRIPE_SECRET_KEY: "sk_test_fake",
       },
