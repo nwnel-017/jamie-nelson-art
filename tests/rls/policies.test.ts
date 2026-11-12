@@ -223,5 +223,13 @@ it('profile table stays behind the service-role API boundary', async () => {
     const update = await client.from('artist_profile').update({ bio: original.data.bio }).eq('id', true).select();
     expect(update.error).toBeNull();
     expect(update.data).toHaveLength(0);
+    const insert = await client.from('artist_profile').insert({ id: true, bio: prefix }).select();
+    expect(insert.error?.code).toBe('42501');
+    const deleted = await client.from('artist_profile').delete().eq('id', true).select();
+    expect(deleted.error).toBeNull();
+    expect(deleted.data).toHaveLength(0);
   }
+  const unchanged = await service.from('artist_profile').select('*').eq('id', true).single();
+  expect(unchanged.error).toBeNull();
+  expect(unchanged.data).toEqual(original.data);
 });
