@@ -12,7 +12,6 @@ useSeoMeta({
 
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
-const router = useRouter();
 const { startLoading, stopLoading } = useLoading();
 const email = ref("");
 const password = ref("");
@@ -79,13 +78,13 @@ const login = async () => {
     <div class="verticalContent">
       <h1>Login</h1>
       <form class="submissionForm" @submit.prevent="login">
-        <input v-model="email" name="email" placeholder="Email" />
+        <input v-model="email" name="email" placeholder="Email" >
         <input
-          type="password"
           v-model="password"
+          type="password"
           name="password"
           placeholder="Password"
-        />
+        >
         <Button type="submit" size="sm">Login</Button>
       </form>
     </div>

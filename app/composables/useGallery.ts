@@ -1,5 +1,4 @@
 import type { GalleryRow } from "~~/types/supabase/tables";
-import { success } from "zod";
 import { toast } from "vue-sonner";
 
 export function useGallery() {

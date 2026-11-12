@@ -1,13 +1,15 @@
 import { stripe } from "@server/utils/stripe/stripe";
-import { Stripe } from "stripe";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import type { Stripe } from "stripe";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import {
   createOrder,
   updateOrderStatusById,
   getOrderByPaymentIntentId,
 } from "@server/services/orders.service";
+import type {
+  ShippingDetail} from "@utils/validation/stripe";
 import {
-  ShippingDetail,
   validateShippingAddress,
 } from "@utils/validation/stripe";
 import { getStripeId } from "@utils/stripe/stripe";
@@ -122,7 +124,7 @@ async function processEvent(
         await markWebhookEventProcessed(supabase, stripeEvent.id);
       } catch (err) {
         console.log("Something went wrong: " + err);
-        throw new Error("Something went wrong!");
+        throw new Error("Something went wrong!", { cause: err });
       }
       break;
     }
@@ -187,7 +189,7 @@ export default defineEventHandler(async (event) => {
     );
   } catch (err) {
     console.log("An error occured reading the event: " + err);
-    throw new Error("Failed to retrieve event!");
+    throw new Error("Failed to retrieve event!", { cause: err });
   }
 
   const supabase = createClient(

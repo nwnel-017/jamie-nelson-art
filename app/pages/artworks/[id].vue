@@ -1,10 +1,11 @@
 <script lang="ts" setup>
-import type { Database } from "#types/supabase/database";
-import type { ArtworkRow } from "~~/types/supabase/tables";
-import type { GalleryRow } from "~~/types/supabase/tables";
+import { paymentsEnabled } from "@utils/payments";
+import type { ArtworkRow, GalleryRow } from "~~/types/supabase/tables";
 import VueEasyLightbox from "vue-easy-lightbox";
 import ArrowIcon from "~/components/icons/ArrowIcon.vue";
 import ZoomIn from "~/assets/icons/zoom-in.svg";
+
+const { confirmPayment } = usePayments();
 
 definePageMeta({ layout: "artist" });
 
@@ -17,7 +18,7 @@ const { startLoading, stopLoading } = useLoading();
 const {
   data: artwork,
   pending: pendingArtwork,
-  error,
+
 } = await useFetch<ArtworkRow>(`/api/artworks/${id.value}`);
 
 useSeoMeta({
@@ -98,33 +99,6 @@ const closeLightBox = () => {
   lightboxVisible.value = false;
 };
 
-async function confirmPayment() {
-  await navigateTo(`/payments/confirm/${id.value}`);
-}
-
-async function payWithStripe() {
-  try {
-    const { url } = await $fetch<{ url: string }>(
-      "/api/stripe/create-checkout-session",
-      {
-        method: "POST",
-        body: {
-          artworkId: id.value,
-          artworkName: artwork.value?.title,
-        },
-      },
-    );
-
-    if (url) {
-      window.location.href = url;
-    }
-  } catch (err) {
-    console.log(
-      "There was an error retrieving Stripe checkout session: " + err,
-    );
-    throw new Error("Failed to retrieve stripe checkout session");
-  }
-}
 </script>
 
 <template>
@@ -138,8 +112,8 @@ async function payWithStripe() {
       <ClientOnly>
         <VueEasyLightbox
           :visible="lightboxVisible"
-          @hide="closeLightBox"
           :imgs="viewerImage"
+          @hide="closeLightBox"
       /></ClientOnly>
       <div class="artworkMedia">
         <div class="artworkCard">
@@ -206,10 +180,12 @@ async function payWithStripe() {
         <div v-if="artwork?.artwork_note">
           <!-- <strong>*</strong> {{ artwork?.artwork_note }} -->
         </div>
-        <!-- <Button v-if="!artwork.sold" class="buttonCol" @click="confirmPayment"
-          >Buy Now</Button
-        >
-        <Button v-else disabled class="buttonCol">Sold</Button> -->
+        <template v-if="paymentsEnabled">
+          <Button v-if="!artwork.sold" class="buttonCol" @click="confirmPayment(id)">
+            Buy Now
+          </Button>
+          <Button v-else disabled class="buttonCol">Sold</Button>
+        </template>
       </div>
     </section>
   </div>

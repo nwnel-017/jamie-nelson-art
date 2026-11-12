@@ -24,9 +24,9 @@ if (import.meta.server) {
   <LoadingOverlay />
   <NuxtLayout>
     <Toaster
-      richColors
+      rich-colors
       position="top-center"
-      :toastOptions="{
+      :toast-options="{
         class: 'toast',
       }"
     />

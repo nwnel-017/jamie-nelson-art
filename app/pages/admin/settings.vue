@@ -79,7 +79,7 @@ onBeforeUnmount(() => {
           type="file"
           accept="image/jpeg,image/png,image/gif,image/webp"
           @change="selectImage"
-        />
+        >
         <small>JPG, PNG, GIF, or WebP. Maximum 5 MB.</small>
       </div>
 

@@ -44,14 +44,14 @@ const submit = () => {
             :id="`file-upload-${i}`"
             type="file"
             @change="(e) => onFileChange(e, i)"
-          />
+          >
 
-          <span class="filename" v-if="f">{{ f.name }}</span>
+          <span v-if="f" class="filename">{{ f.name }}</span>
 
           <button
+            v-if="fileInputs.length > 1"
             type="button"
             class="remove"
-            v-if="fileInputs.length > 1"
             @click="() => removeInput(i)"
           >
             Remove

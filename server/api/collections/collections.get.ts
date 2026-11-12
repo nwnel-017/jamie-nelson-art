@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
     const supabase = await serverSupabaseClient(event);
     const data = await getCollections(supabase);
     return data;
-  } catch (err) {
+  } catch {
     return createError({
       statusCode: 500,
       data: {

@@ -185,21 +185,21 @@ async function deleteArtwork() {
             <Button
               variant="danger"
               size="lg"
-              @click="deleteArtwork"
               class="btn"
+              @click="deleteArtwork"
               >Click to Delete Artwork</Button
             >
           </div>
         </div>
         <div v-if="isEditing" class="verticalContent spaced">
           <label for="title">Title</label>
-          <textarea v-model="editedArtwork.title" type="text"></textarea>
+          <textarea v-model="editedArtwork.title" type="text" />
           <label for="description">Description</label>
-          <textarea v-model="editedArtwork.description" type="text"></textarea>
+          <textarea v-model="editedArtwork.description" type="text" />
           <label for="price">Price</label>
-          <textarea v-model="editedArtwork.price" type="text"></textarea>
+          <textarea v-model="editedArtwork.price" type="text" />
           <label for="dimensions">Size:</label>
-          <textarea v-model="editedArtwork.dimensions" type="text"></textarea>
+          <textarea v-model="editedArtwork.dimensions" type="text" />
           <label for="year">Year (Optional):</label>
           <input
             id="year"
@@ -209,21 +209,21 @@ async function deleteArtwork() {
             min="1900"
             max="2100"
             step="1"
-          />
+          >
           <label for="medium">Medium (Optional):</label>
           <textarea
             id="medium"
             v-model="editedArtwork.medium"
             type="text"
-          ></textarea>
+          />
           <label for="artwork_note">Artwork Note (Optional):</label>
-          <textarea v-model="editedArtwork.artwork_note" type="text"></textarea>
+          <textarea v-model="editedArtwork.artwork_note" type="text" />
           <label for="cover_image">Cover Image</label>
           <input
-            type="checkbox"
             id="cover_image"
             v-model="editedArtwork.cover_image"
-          />
+            type="checkbox"
+          >
           <Button variant="primary" size="lg" @click="save"
             >Save Changes</Button
           >

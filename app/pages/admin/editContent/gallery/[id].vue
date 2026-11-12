@@ -26,7 +26,6 @@ const { startLoading, stopLoading } = useLoading();
 
 const viewFileUpload = ref(false);
 
-const offset = ref(0);
 
 function toggleFileUpload() {
   viewFileUpload.value = !viewFileUpload.value;
@@ -38,7 +37,7 @@ async function uploadFiles(files: File[]) {
 
   const formData = new FormData();
   formData.append("artworkId", artworkId.value);
-  files.forEach((image, index) => {
+  files.forEach((image) => {
     formData.append(`image`, image);
   });
 
@@ -46,7 +45,7 @@ async function uploadFiles(files: File[]) {
     startLoading();
     await addArtworkImages(artworkId.value, formData);
     toast.success("Successfully added images!");
-  } catch (err) {
+  } catch {
     toast.error("something went wrong!");
   } finally {
     stopLoading();
@@ -67,6 +66,7 @@ const {
 </script>
 
 <template>
+  <div>
   <h1>Gallery</h1>
   <div v-if="pending">Loading gallery images...</div>
   <div v-if="error">Failed to get gallery</div>
@@ -88,6 +88,7 @@ const {
   </div>
   <div v-else>No gallery images available.</div>
   <Button variant="primary" @click="toggleFileUpload">Add Photos</Button>
+  </div>
 </template>
 
 <style></style>

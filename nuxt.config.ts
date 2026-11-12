@@ -27,7 +27,7 @@ export default defineNuxtConfig({
     },
   },
   css: ["~/assets/styles/main.css"],
-  modules: ["@nuxtjs/supabase", "nuxt-lottie", "@nuxt/image", "nuxt-svgo"],
+  modules: ["@nuxt/eslint", "@nuxtjs/supabase", "nuxt-lottie", "@nuxt/image", "nuxt-svgo"],
   image: {
     domains: process.env.SUPABASE_DOMAIN
       ? [process.env.SUPABASE_DOMAIN]
@@ -40,6 +40,7 @@ export default defineNuxtConfig({
     enableLogs: true, // Optional: Enable console logs from module (default: true)
   },
   supabase: {
+    types: "~~/types/supabase/database.ts",
     url: process.env.SUPABASE_URL,
     key: process.env.SUPABASE_KEY,
     serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
