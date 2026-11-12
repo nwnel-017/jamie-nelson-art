@@ -24,11 +24,13 @@ export type Database = {
           dimensions: string | null
           id: string
           image_path: string | null
+          medium: string | null
           price: number | null
           publish_on: string | null
           sold: boolean
           title: string | null
           updated_at: string
+          year: number | null
         }
         Insert: {
           artwork_note?: string | null
@@ -39,11 +41,13 @@ export type Database = {
           dimensions?: string | null
           id?: string
           image_path?: string | null
+          medium?: string | null
           price?: number | null
           publish_on?: string | null
           sold?: boolean
           title?: string | null
           updated_at?: string
+          year?: number | null
         }
         Update: {
           artwork_note?: string | null
@@ -54,11 +58,13 @@ export type Database = {
           dimensions?: string | null
           id?: string
           image_path?: string | null
+          medium?: string | null
           price?: number | null
           publish_on?: string | null
           sold?: boolean
           title?: string | null
           updated_at?: string
+          year?: number | null
         }
         Relationships: [
           {
