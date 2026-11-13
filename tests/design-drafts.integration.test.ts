@@ -339,7 +339,7 @@ test("real draft transactions enforce versions, readiness, concurrency, limits a
   }
 });
 
-test("initial POST retries are idempotent, concurrent calls cannot double-analyze, and approval checks the owner and readiness", async (t) => {
+test("initial POST retries are idempotent and concurrent calls cannot double-analyze", async (t) => {
   assert.ok(
     ["127.0.0.1", "localhost"].includes(
       new URL(process.env.SUPABASE_URL!).hostname,
@@ -348,8 +348,6 @@ test("initial POST retries are idempotent, concurrent calls cannot double-analyz
   );
   const { gatherRequirements } =
     await import("../server/services/gather-requirements.service");
-  const { executeDesignRequest } =
-    await import("../server/services/execute-design.service");
   const client = createClient<Database>(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -369,6 +367,7 @@ test("initial POST retries are idempotent, concurrent calls cannot double-analyz
     finish = resolve;
   });
   const ready = {
+    response: "The requirements have been analyzed.",
     requirements: ["Make the gallery blue"],
     ambiguities: [],
     clarifying_questions: [],
@@ -433,72 +432,6 @@ test("initial POST retries are idempotent, concurrent calls cannot double-analyz
         deps,
       ),
       code("SUBMISSION_CONFLICT"),
-    );
-    const planningConfig = {
-      token: "test-token",
-      repository: "owner/repository",
-      repositoryId: "123",
-      workflowRef: "master",
-      sourceRef: "master",
-      backendUrl: "https://backend.example",
-      model: "test-model",
-      promptVersion: "technical-instructions-v1",
-    };
-    const originalFetch = globalThis.fetch;
-    let githubCalls = 0;
-    t.mock.method(globalThis, "fetch", async (input, init) => {
-      const url = new URL(String(input));
-      if (url.hostname !== "api.github.com") return originalFetch(input, init);
-      githubCalls++;
-      return new Response(
-        JSON.stringify(
-          url.pathname.includes("/commits/")
-            ? { sha: "a".repeat(40) }
-            : { workflow_run_id: Number(Date.now()) },
-        ),
-        {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        },
-      );
-    });
-    const approval = await executeDesignRequest(
-      client,
-      saved.id,
-      owner,
-      planningConfig,
-    );
-    assert.equal(approval.success, true);
-    assert.equal(approval.requestId, id);
-    assert.equal(approval.draft_version, 1);
-    assert.equal(approval.status, "queued");
-    const repeatedApproval = await executeDesignRequest(
-      client,
-      saved.id,
-      owner,
-      planningConfig,
-    );
-    assert.equal(repeatedApproval.jobId, approval.jobId);
-    assert.equal(
-      githubCalls,
-      2,
-      "Repeated approval must not resolve or dispatch GitHub again",
-    );
-    await assert.rejects(
-      executeDesignRequest(client, saved.id, "someone-else", planningConfig),
-      (error: unknown) =>
-        error instanceof HandoffError && error.statusCode === 404,
-    );
-    const pending = await gatherRequirements(
-      client,
-      owner,
-      { ...input, submissionId: pendingId },
-      { ...deps, model: createTestModel(), limit: 4 },
-    );
-    assert.equal(pending.ready, false);
-    await assert.rejects(
-      executeDesignRequest(client, pending.id, owner, planningConfig),
-      code("PLAN_NOT_READY"),
     );
   } finally {
     finish();

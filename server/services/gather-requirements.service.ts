@@ -1,3 +1,4 @@
+import { createFlowLog } from "@server/utils/agent/flow-log";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "#types/supabase/database";
 import type { ValidatedHandoff } from "@server/utils/agent/handoff/submission-validation";
@@ -19,22 +20,30 @@ export async function gatherRequirements(
   supabase: SupabaseClient<Database>,
   userId: string,
   handoff: ValidatedHandoff & { submissionId: string },
-  { model, limit }: { model: AiModel; limit: number },
+  {
+    model,
+    limit,
+    log = createFlowLog("gather-analysis"),
+  }: { model: AiModel; limit: number; log?: ReturnType<typeof createFlowLog> },
 ) {
   const hash = submissionHash({
     instructions: handoff.instructions,
     changeOptions: handoff.changeOptions,
     image: Buffer.from(handoff.bytes).toString("base64"),
   });
-  const id = await ensureDesignRequest(supabase, userId, handoff, hash);
-  const reservation = await reserveAnalysis(supabase, {
-    requestId: id,
-    userId,
-    submissionId: handoff.submissionId,
-    baseVersion: 0,
-    payloadHash: hash,
-    limit,
-  });
+  const id = await log.step("persist-request-and-image", () =>
+    ensureDesignRequest(supabase, userId, handoff, hash),
+  );
+  const reservation = await log.step("reserve-analysis", () =>
+    reserveAnalysis(supabase, {
+      requestId: id,
+      userId,
+      submissionId: handoff.submissionId,
+      baseVersion: 0,
+      payloadHash: hash,
+      limit,
+    }),
+  );
   if (reservation.state === "completed") {
     return getRequestWithDraft(
       supabase,
@@ -45,19 +54,23 @@ export async function gatherRequirements(
     );
   }
   try {
-    const result = await new VerificationAgent(model).run({
-      instructions: handoff.instructions,
-      changeOptions: handoff.changeOptions,
-      image: { bytes: handoff.bytes, mimeType: "image/png" },
-    });
-    return await finishAnalysis(supabase, {
-      requestId: id,
-      userId,
-      submissionId: handoff.submissionId,
-      analysis: initialDraftAnalysis(result),
-      answers: [],
-      limit,
-    });
+    const result = await log.step("model-generate-and-validate", () =>
+      new VerificationAgent(model).run({
+        instructions: handoff.instructions,
+        changeOptions: handoff.changeOptions,
+        image: { bytes: handoff.bytes, mimeType: "image/png" },
+      }),
+    );
+    return await log.step("save-and-load-draft", () =>
+      finishAnalysis(supabase, {
+        requestId: id,
+        userId,
+        submissionId: handoff.submissionId,
+        analysis: initialDraftAnalysis(result),
+        answers: [],
+        limit,
+      }),
+    );
   } catch (error) {
     try {
       await failAnalysis(supabase, {

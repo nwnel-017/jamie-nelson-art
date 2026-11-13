@@ -250,24 +250,27 @@ test("subsequent Publish opens the saved result without analysis or automatic ap
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
-test("only an explicitly approved request completes Canva publishing", async () => {
-  expect(
-    await publishToPortfolio(
-      {
-        ...request,
-        publishRef: JSON.stringify({
-          instructions: designRequest.instructions,
-          changeOptions: ["existing_pages"],
-          approvedRequestId: designRequest.id,
-        }),
-      },
-      "https://portfolio.example",
-    ),
-  ).toEqual({ status: "completed", externalId: designRequest.id });
-  expect(fetchMock).not.toHaveBeenCalled();
+test("a cached approval marker cannot complete Canva publishing", async () => {
+  fetchMock.mockResolvedValue({
+    ok: true,
+    json: async () => ({ designRequest }),
+  });
+  const result = await publishToPortfolio(
+    {
+      ...request,
+      publishRef: JSON.stringify({
+        instructions: designRequest.instructions,
+        changeOptions: ["existing_pages"],
+        approvedRequestId: designRequest.id,
+      }),
+    },
+    "https://portfolio.example",
+  );
+  expect(result.status).toBe("app_error");
+  expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
-test("an initially ready response still requires explicit approval", async () => {
+test("an initially ready response remains review-only", async () => {
   fetchMock.mockResolvedValue({
     ok: true,
     json: async () => ({

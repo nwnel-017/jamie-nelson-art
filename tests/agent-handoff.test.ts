@@ -402,6 +402,7 @@ test("pipeline checks design signature before downloading, and fully validates a
   assert.equal(downloads, 1);
 });
 const verification = {
+  response: "The requirements have been analyzed.",
   requirements: ["Add the artwork to the portfolio."],
   ambiguities: ["The destination collection is unspecified."],
   clarifying_questions: ["Which collection should contain the artwork?"],

@@ -1,5 +1,6 @@
 import type { DesignRequest } from "./design_request";
 export const designRequest: DesignRequest = {
+  response: "Please clarify the gallery and color.",
   ready: false,
   analyze_attempts: 1,
   attempts_remaining: 3,
@@ -8,6 +9,7 @@ export const designRequest: DesignRequest = {
     steps: [{ id: "step-1", action: "Update the gallery page.", target: null }],
   },
   draft: {
+    response: "Please clarify the gallery and color.",
     id: "12345678-1234-4234-8234-123456789aaa",
     version: 1,
     ready: false,

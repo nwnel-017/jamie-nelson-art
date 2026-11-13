@@ -61,8 +61,7 @@ test("shows analysis, asks one question at a time, and preserves answers when su
     });
   globalThis.fetch = fetchMock;
   renderInTestProvider(<Review />);
-  expect(screen.getByText(designRequest.requirements[0]!)).toBeTruthy();
-  expect(screen.getByText(designRequest.ambiguities[0]!)).toBeTruthy();
+  expect(screen.getByText(designRequest.response!)).toBeTruthy();
   expect(screen.queryByText("Which color?")).toBeNull();
   expect(
     screen.getByRole("button", { name: "Next" }).getAttribute("aria-disabled"),
@@ -91,7 +90,7 @@ test("shows analysis, asks one question at a time, and preserves answers when su
   ).toBe("Blue");
   fireEvent.click(screen.getByRole("button", { name: "Submit" }));
   await screen.findByText(
-    "Your requirements are understood. Review the instructions below, then approve.",
+    "Your requirements are understood. Review the instructions below.",
   );
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   expect(JSON.parse(fetchMock.mock.calls[0][1].body).submission_id).toBe(
@@ -135,7 +134,7 @@ test("a ready plan shows its required steps without asking for another submissio
   expect(screen.getByText("Apply blue colors to the gallery.")).toBeTruthy();
   expect(
     screen.getByText(
-      "Your requirements are understood. Review the instructions below, then approve.",
+      "Your requirements are understood. Review the instructions below.",
     ),
   ).toBeTruthy();
 });
@@ -253,41 +252,21 @@ test("an exhausted attempt budget shows an error and prevents another analysis",
   ).toBe("true");
 });
 
-test("Approve calls execute and succeeds even when the analysis budget is exhausted", async () => {
-  const approved = jest.fn();
-  const fetchMock = jest.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({
-      success: true,
-      requestId: designRequest.id,
-      draft_version: 1,
-      jobId: "12345678-1234-4234-8234-123456789ddd",
-      status: "queued",
-    }),
-  });
-  globalThis.fetch = fetchMock;
+test("a ready draft remains review-only, including at the analysis limit", () => {
+  globalThis.fetch = jest.fn();
   renderInTestProvider(
-    <ClarificationUi
-      request={{
+    <Review
+      initial={{
         ...designRequest,
         ready: true,
         attempts_remaining: 0,
         clarifying_questions: [],
       }}
-      backendHost="https://portfolio.example"
-      onSubmitted={jest.fn()}
-      onApproved={approved}
     />,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Approve" }));
-  await waitFor(() => expect(approved).toHaveBeenCalledTimes(1));
-  expect(fetchMock).toHaveBeenCalledWith(
-    `https://portfolio.example/api/agent/execute/${designRequest.id}`,
-    expect.objectContaining({ method: "POST" }),
-  );
-  const options = fetchMock.mock.calls[0]![1];
-  expect(options).not.toHaveProperty("body");
-  expect(options.headers).not.toHaveProperty("Content-Type");
+  expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Submit" })).toBeNull();
+  expect(globalThis.fetch).not.toHaveBeenCalled();
 });
 
 test("answers and their submission ID survive remounts and retry the same POST", async () => {
@@ -334,49 +313,3 @@ test("answers and their submission ID survive remounts and retry the same POST",
   );
   clearWorkflow(key);
 });
-
-test.each([
-  { success: true, requestId: designRequest.id },
-  {
-    success: true,
-    requestId: designRequest.id,
-    draft_version: 1,
-    jobId: "invalid",
-    status: "queued",
-  },
-  {
-    success: true,
-    requestId: designRequest.id,
-    draft_version: 1,
-    jobId: "12345678-1234-4234-8234-123456789ddd",
-    status: "dispatching",
-  },
-  {
-    success: true,
-    requestId: designRequest.id,
-    draft_version: 1,
-    jobId: "12345678-1234-4234-8234-123456789ddd",
-    status: "failed",
-  },
-])(
-  "Approve does not complete publishing without an accepted technical planning job: %j",
-  async (result) => {
-    const approved = jest.fn();
-    globalThis.fetch = jest
-      .fn()
-      .mockResolvedValue({ ok: true, json: async () => result });
-    renderInTestProvider(
-      <ClarificationUi
-        request={{ ...designRequest, ready: true, clarifying_questions: [] }}
-        backendHost="https://portfolio.example"
-        onSubmitted={jest.fn()}
-        onApproved={approved}
-      />,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
-    await screen.findByText(
-      "The portfolio did not confirm that technical planning was queued.",
-    );
-    expect(approved).not.toHaveBeenCalled();
-  },
-);

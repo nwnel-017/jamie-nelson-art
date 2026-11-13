@@ -1,3 +1,4 @@
+import { createFlowLog } from "@server/utils/agent/flow-log";
 import { serverSupabaseServiceRole } from "#supabase/server";
 import type { Database } from "#types/supabase/database";
 import { requireCanvaUser } from "@server/utils/auth/requireCanvaUser";
@@ -10,10 +11,12 @@ import { clarifyDesignRequest } from "@server/services/clarify-requirements.serv
 import { analysisLimit } from "@server/utils/agent/analysis-config";
 
 export default defineEventHandler(async (event) => {
+  const log = createFlowLog("clarify-requirements");
+  setHeader(event, "x-publisher-trace-id", log.traceId);
   try {
     setHeader(event, "cache-control", "no-store");
     const config = useRuntimeConfig(event);
-    const user = await requireCanvaUser(event, config);
+    const user = await log.step("authenticate", () => requireCanvaUser(event, config));
     const id = requireDesignRequestId(event);
     const body = await readAgentBody(
       event,
@@ -22,17 +25,19 @@ export default defineEventHandler(async (event) => {
     );
     const supabase = serverSupabaseServiceRole<Database>(event);
 
-    const result = await clarifyDesignRequest(
+    const result = await log.step("analyze-and-save-answers", () => clarifyDesignRequest(
       supabase,
       id,
       user.userId,
       body,
       createVerificationModel(config),
       analysisLimit(config.maxAnalyzeAttempts),
-    );
+    ));
 
+    log.write("completed", { requestId: result.id, ready: result.ready, draftVersion: result.draft_version });
     return designRequestResponse(result);
   } catch (error) {
+    log.fail(error);
     throw agentRequestError(error);
   }
 });

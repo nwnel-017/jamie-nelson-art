@@ -92,7 +92,7 @@ test("receives the full POST result from Canva without making a GET request", as
     }),
   );
   await screen.findByRole("textbox", { name: "Which gallery?" });
-  expect(screen.getByText(designRequest.requirements[0]!)).toBeTruthy();
+  expect(screen.getByText(designRequest.response!)).toBeTruthy();
   await waitFor(() =>
     expect(updatePublishSettings).toHaveBeenLastCalledWith({
       publishRef: JSON.stringify({
@@ -131,7 +131,7 @@ test("reload restores the saved analysis without a network request", async () =>
   expect(globalThis.fetch).not.toHaveBeenCalled();
 });
 
-test("an initially ready result shows Approve and approval clears the saved workflow", async () => {
+test("a ready result remains saved for review without an approval action", async () => {
   const ready = {
     ...designRequest,
     ready: true,
@@ -144,14 +144,8 @@ test("an initially ready result shows Approve and approval clears the saved work
     changeOptions: ["existing_pages"],
     analysis: ready,
   });
+  globalThis.fetch = jest.fn();
   const updatePublishSettings = jest.fn();
-  let confirmApproval!: (response: unknown) => void;
-  globalThis.fetch = jest.fn().mockImplementation(
-    () =>
-      new Promise((resolve) => {
-        confirmApproval = resolve;
-      }),
-  );
   renderInTestProvider(
     <SettingsUi
       backendHost="https://portfolio.example"
@@ -160,47 +154,16 @@ test("an initially ready result shows Approve and approval clears the saved work
       registerOnContextChange={jest.fn()}
     />,
   );
-  const approve = await screen.findByRole("button", { name: "Approve" });
-  expect(updatePublishSettings).toHaveBeenLastCalledWith(
-    expect.objectContaining({
-      validityState: "invalid_missing_required_fields",
-    }),
-  );
-  fireEvent.click(approve);
-  await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(1));
-  expect(updatePublishSettings).toHaveBeenLastCalledWith(
-    expect.objectContaining({
-      validityState: "invalid_missing_required_fields",
-    }),
-  );
-  await act(async () =>
-    confirmApproval({
-      ok: true,
-      json: async () => ({
-        success: true,
-        requestId: ready.id,
-        draft_version: 1,
-        jobId: "12345678-1234-4234-8234-123456789ddd",
-        status: "queued",
-      }),
-    }),
-  );
   await screen.findByText(
-    "Your agent is working on your request. You will be sent an email when it is ready to review.",
+    "Your requirements are understood. Review the instructions below.",
   );
-  expect(loadWorkflow("test-scope")).toBeUndefined();
-  await waitFor(() =>
-    expect(updatePublishSettings).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        publishRef: JSON.stringify({
-          instructions: ready.instructions,
-          changeOptions: ["existing_pages"],
-          designRequestId: ready.id,
-          approvedRequestId: ready.id,
-        }),
-        validityState: "valid",
-      }),
-    ),
+  expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+  expect(loadWorkflow("test-scope")?.analysis?.id).toBe(ready.id);
+  expect(globalThis.fetch).not.toHaveBeenCalled();
+  expect(updatePublishSettings).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      validityState: "invalid_missing_required_fields",
+    }),
   );
 });
 
@@ -273,8 +236,10 @@ test("Publish stays disabled while answers are entered, analyzed, and reviewed",
       json: async () => ({ designRequest: ready }),
     }),
   );
-  fireEvent.click(await screen.findByRole("button", { name: "Approve" }));
-  await screen.findByText("Approval failed. Please try again.");
+  await screen.findByText(
+    "Your requirements are understood. Review the instructions below.",
+  );
+  expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
   expectDisabled();
   expect(
     updatePublishSettings.mock.calls.some(

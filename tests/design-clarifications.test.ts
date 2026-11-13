@@ -11,6 +11,7 @@ const id = "12345678-1234-4234-8234-123456789abc";
 const questionId = "12345678-1234-4234-8234-123456789abd";
 const submissionId = "12345678-1234-4234-8234-123456789abe";
 const result = {
+  response: "The requirements have been analyzed.",
   requirements: ["Update gallery"],
   ambiguities: [],
   clarifying_questions: [],

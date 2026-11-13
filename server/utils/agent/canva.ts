@@ -1,6 +1,8 @@
 import {
   initDesignTokenVerifier,
   initUserTokenVerifier,
+  TokenExpiredError,
+  TokenInvalidError,
 } from "@canva/app-middleware";
 import { HandoffError } from "./errors";
 
@@ -18,7 +20,7 @@ const cache = new Map<string, CanvaVerifiers>();
 export function getCanvaVerifiers(appId: string): CanvaVerifiers {
   let verifiers = cache.get(appId);
   if (!verifiers) {
-    const options = { appId, timeoutMs: 2500 };
+    const options = { appId, timeoutMs: 10000 };
     verifiers = {
       user: initUserTokenVerifier(options),
       design: initDesignTokenVerifier(options),
@@ -57,8 +59,30 @@ export async function authorizeCanvaUser(
   let user;
   try {
     user = await verifiers.user.verify(token);
-  } catch {
-    throw new HandoffError(401, "Invalid or expired Canva user token.");
+  } catch (error) {
+    const reason =
+      error instanceof TokenExpiredError
+        ? "TOKEN_EXPIRED"
+        : error instanceof TokenInvalidError
+          ? "TOKEN_INVALID"
+          : "VERIFICATION_UNAVAILABLE";
+    console.error("[canva-publisher] user-token.verification.failed", {
+      reason,
+      errorType: error instanceof Error ? error.name : "UnknownError",
+    });
+    if (reason === "VERIFICATION_UNAVAILABLE")
+      throw new HandoffError(
+        503,
+        "Could not reach Canva to verify your session. Please try again.",
+        reason,
+      );
+    throw new HandoffError(
+      401,
+      reason === "TOKEN_EXPIRED"
+        ? "Your Canva session token has expired. Reopen the app and try again."
+        : "Invalid Canva user token. Reopen the app and try again.",
+      reason,
+    );
   }
   if (
     user.appId !== appId ||

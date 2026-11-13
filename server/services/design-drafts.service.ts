@@ -29,7 +29,14 @@ export async function getDesignDraft(
     .order("version", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (error) throw new HandoffError(500, "Could not load the design draft.");
+  if (error) {
+    console.error("[canva-publisher] draft.load.failed", {
+      requestId: id,
+      version,
+      databaseCode: error.code,
+    });
+    throw new HandoffError(500, "Could not load the design draft.");
+  }
   return data as unknown as DesignDraft | null;
 }
 export async function getRequestWithDraft(
@@ -50,6 +57,7 @@ export async function getRequestWithDraft(
     attempts_remaining: Math.max(0, limit - (request.analyze_attempts ?? 0)),
     ...(draft
       ? {
+          response: draft.response,
           requirements: draft.requirements,
           ambiguities: draft.ambiguities,
           clarifying_questions: draft.clarifying_questions.map(

@@ -29,6 +29,7 @@ test("model adapters can swap providers using the same input and result contract
 
 test("verification agent invokes the configured model with the existing prompt and image", async () => {
   const verification = {
+    response: "The requirements have been analyzed.",
     requirements: ["Update the gallery."],
     ambiguities: ["The gallery is unspecified."],
     clarifying_questions: ["Which gallery should change?"],
