@@ -15,7 +15,6 @@
     "test": "jest --no-cache --passWithNoTests",
     "test:watch": "jest --watchAll",
     "test:update": "npm run test -- -u",
-    "postinstall": "tsx ./scripts/copy_env.ts",
     "canva": "npm run start:preview"
   },
   "dependencies": {
