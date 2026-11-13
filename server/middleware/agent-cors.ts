@@ -2,7 +2,7 @@ import { getRequestURL, handleCors } from "h3";
 
 export default defineEventHandler((event) => {
   if (
-    !/^\/api\/agent\/(?:gather-requirements|clarify-requirements\/[^/]+)\/?$/.test(
+    !/^\/api\/agent\/(?:gather-requirements|(?:clarify-requirements|execute)\/[^/]+)\/?$/.test(
       getRequestURL(event).pathname,
     )
   )

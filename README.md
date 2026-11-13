@@ -162,17 +162,17 @@ The complete POST result is passed to the settings frame. It displays requiremen
 and asks one question at a time, with Next, Back, and Submit. Submit sends ID-matched
 answers to the clarification endpoint, saves a new draft, and displays the returned
 JSON. This repeats until `ready=true` or the analysis attempt limit is reached.
-The initial analysis counts toward the limit. A ready final attempt remains available for review.
+The initial analysis counts toward the limit. A ready final attempt can be approved.
 
 Ready responses, including an initially ready response, display the final
-requirements, plan, and answer history for review. Approval and website changes
-are unavailable in this stage of the feature. Canva Publish remains disabled
-while an existing analysis is displayed; start a new request to submit another design.
+requirements, plan, and answer history for review. Approve sends a bodyless POST to
+`/api/agent/execute/:id`, which authenticates the owner and queues one job for the
+latest ready draft. Canva Publish completes only after that approval is accepted.
 
 Responses, entered answers, and submission IDs are saved in local storage scoped to
 the backend, Canva app, team, user, and design. Reload restores this UI without GET.
 Tokens are decoded only for cache namespacing; the server verifies authorization.
-Starting a new request clears the saved workflow. If storage is blocked,
+Approval or starting a new request clears the saved workflow. If storage is blocked,
 the active session remains usable; cleared storage cannot recover a saved request.
 Processing is synchronous, without polling or automatic analysis on Publish retries.
 
@@ -198,3 +198,84 @@ with `NUXT_AI_PROVIDER=test`, and when Supabase points to a loopback host. Canva
 app identity, expiry and claims are still verified, and each saved request remains
 owned by the verified user. Production, real model providers, hosted Supabase databases,
 and explicitly configured allowlists retain normal allowlist checks.
+
+### Technical design planning worker
+
+Approval creates one `technical_design_jobs` row for the immutable ready draft.
+The backend resolves `NUXT_PLANNING_SOURCE_REF` to a commit SHA and dispatches
+`.github/workflows/generate-technical-instructions.yml` from the trusted
+`NUXT_PLANNING_WORKFLOW_REF`. Repeated approvals reuse that draft's existing job.
+The first generation attempt is claimed atomically; workflow reruns do not generate
+again. There are no automatic planning retries. A failed job needs an explicit
+future recovery mechanism; repeated approval does not reset it.
+
+The workflow isolates claiming approved input, read-only planning, implementation,
+publication, and result reporting into separate GitHub-hosted jobs. Only claim/report
+can obtain the GitHub OIDC identity used by the backend. Codex gets the approved
+requirements, plan, answers and design-image reference; it inspects source files but
+never edits them. It does not download or visually inspect the referenced image.
+The fixed planning prompt is supplied as Codex developer instructions (Codex's
+native system instructions stay in place). Source checkout project configuration
+and AGENTS auto-loading are disabled for this planning run.
+
+The generated JSON contains `objective`, `tasks` (IDs, descriptions, file paths and
+acceptance criteria), `verification_steps`, `constraints`, and `blockers`. The backend
+validates and stores it in `technical_design_jobs.technical_instructions`, separate
+from the user-approved requirements. `completed` means instructions were generated,
+not that code was changed. Execution validates the instructions and stops if the
+`blockers` array is nonempty. Successful implementation opens or updates a PR;
+publication failures remain visible in GitHub Actions.
+
+Setup:
+
+1. Apply `supabase/migrations/20261106000001_create_technical_design_jobs.sql` and
+   deploy the updated backend. Its endpoints must be reachable from GitHub's runner
+   through a public HTTPS origin (use staging or a tunnel for local development).
+2. Set the backend's `NUXT_PLANNING_*` values from `.env.example`. Use the repository's
+   numeric ID (obtain with `gh api repos/nwnel-017/jamie-nelson-art --jq .id`), a
+   server-only fine-grained GitHub token scoped to that repository with **Actions:
+   write** and **Contents: read**, and the intended Codex model ID.
+3. Commit the workflow, scripts, schema and prompt to the GitHub default branch;
+   `workflow_dispatch` requires the workflow to exist there. The trusted workflow
+   branch defaults to `master`; the inspected source branch defaults to `master` too.
+4. Set GitHub Actions variable `TECHNICAL_JOBS_BACKEND_URL` to the exact same HTTPS
+   origin as backend `NUXT_PLANNING_BACKEND_URL`, with no path. Set GitHub secret
+   `OPENAI_API_KEY`. Never put backend service-role or dispatch tokens in this workflow.
+5. Add a repository webhook for **Workflow runs**, with JSON delivery to
+   `/api/github/webhook` on that backend. Give it a random secret
+   matching backend `NUXT_PLANNING_GITHUB_WEBHOOK_SECRET`. Signed completion events
+   fail any unfinished job bound to the run, including cancelled workflows. Already
+   completed results remain immutable.
+
+The worker endpoints are `POST /api/agent/technical-jobs/:id/claim` (bodyless) and
+`POST /api/agent/technical-jobs/:id/result`. They verify GitHub-signed OIDC tokens
+against the configured repository ID, trusted workflow/ref, original run attempt,
+and audience `<backend-origin>/technical-design-jobs`. Anonymous and Canva tokens
+cannot access them. Job-table mutations are limited to service-role RPCs.
+
+Statuses are `dispatching`, `queued`, `running`, `completed`, and `failed`. A rejected
+GitHub dispatch marks the job failed. If the dispatch response is lost or uncertain,
+the job stays `dispatching`; no duplicate workflow is automatically sent. A workflow
+that did start can still claim it. If GitHub never supplies a run ID and no worker
+claims the job, an operator must inspect GitHub before reconciling it. Do not reset or
+redispatch blindly.
+
+The execute request returns after queuing; it has no application-level timeout and
+does not wait for Codex. GitHub/provider platform limits still apply. One attempt
+means one Codex invocation; transport reconnects inside Codex are not separate jobs.
+Canva confirms that the request was queued to prepare a pull request. The final
+Canva Publish completes once approval is accepted.
+
+The publisher validates generated patches before committing. Only presentation
+files under app, assets, public, components, pages, and layouts are permitted;
+backend, authentication, workflow, executable, and symlink changes are rejected.
+A stale branch rejects publication rather than overwriting newer work. No automatic
+PR verification, repairs, or email notification runs at this stage.
+
+Enable GitHub Actions permission to create pull requests. The isolated publisher
+uses contents and pull-requests write permissions; model jobs have read-only
+GitHub permissions and no persisted checkout credentials.
+
+Run `npm run test:planning` for planning, execution preparation, and patch checks.
+Run `npm run test:planning:integration` for local Supabase job lifecycle checks.
+Integration tests refuse hosted Supabase URLs.

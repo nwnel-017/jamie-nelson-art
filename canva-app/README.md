@@ -69,9 +69,16 @@ banner with the custom submission message.
 
 Clarification rounds POST answers to `/api/agent/clarify-requirements/:id` and
 render the returned draft directly. Ready drafts show the final requirements,
-plan, and answer history for review. Approval, code generation, and notification
-are unavailable in this stage. Publish remains disabled while an existing
-analysis is displayed; use Start a new request to submit another design.
+plan, and answer history for review. Ready drafts can be approved as described
+below. Publish completes after approval is accepted.
 There are no GET/polling requests. The latest response, answer edits, and retry IDs
 are cached in local storage scoped to the Canva app, user, team, design, and backend.
-The saved workflow is cleared when starting a new request.
+The saved workflow is cleared on approval or when starting a new request.
+
+### Approving a ready draft
+
+Ready drafts offer Approve, which sends a bodyless POST to
+`/api/agent/execute/:id`. An accepted response queues technical planning and
+implementation; Canva confirms that a pull request will be prepared. Publish
+completes after acceptance and the saved workflow is cleared. This stage does not
+automatically verify, repair, merge, or send email about the generated PR.
