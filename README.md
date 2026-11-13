@@ -93,10 +93,6 @@ The project expects environment variables for:
 - Stripe shipping rate IDs
 - Admin email
 
-Set `IS_VERCEL_PREVIEW=true` when building a preview deployment to show the global
-Preview Mode banner. Omit it or set it to `false` to hide the banner. Its approve
-and reject buttons currently only log to the browser console.
-
 ## Summary
 
 This project was designed as a real-world artwork portfolio for a working artist, with a strong emphasis on presentation, maintainability, and direct online sales. It reflects a full-stack TypeScript approach using Nuxt, Nitro, Supabase, PostgreSQL, and Stripe to deliver both the gallery experience and the supporting commerce workflow.
