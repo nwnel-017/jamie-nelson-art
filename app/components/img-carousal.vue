@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { ArtworkRow } from "#types/supabase/tables";
-import type { Artwork } from "~~/types/artworks/artworks";
 import type { CoverImageRow } from "#types/supabase/tables";
 
 const props = defineProps<{

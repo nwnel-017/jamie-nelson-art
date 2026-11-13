@@ -17,6 +17,12 @@ export const artworkFormSchema = z
       .string()
       .min(1, { message: "Dimensions are required" })
       .max(50, { message: "Dimesniosn are too long" }),
+    year: z
+      .string()
+      .trim()
+      .regex(/^(\d{4})?$/, { message: "Year must be a 4 digit number" })
+      .optional(),
+    medium: z.string().max(100, { message: "Medium is too long" }).optional(),
     artwork_note: z.string().optional(),
     collection: z
       .string()

@@ -1,6 +1,6 @@
 import { serverSupabaseClient } from "#supabase/server";
-import { SupabaseClient } from "@supabase/supabase-js";
-import { Database } from "#types/supabase/database";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "#types/supabase/database";
 import { getLatestArtwork } from "@server/services/artworks.service";
 
 export default defineEventHandler(async (event) => {

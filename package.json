@@ -13,12 +13,18 @@
     "test:drafts:integration": "node --env-file=.env --import tsx --test tests/design-drafts.integration.test.ts",
     "test:handoff": "node --import tsx --test tests/agent-handoff.test.ts tests/ai-model.test.ts tests/design-clarifications.test.ts",
     "canva:user-id": "node --import tsx scripts/canva-user-id.ts",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "nuxt typecheck",
+    "check": "npm run lint && npm run typecheck",
+    "test": "vitest run",
+    "test:rls": "vitest run --config vitest.rls.config.ts",
+    "test:e2e": "playwright test",
     "test:planning": "node --import tsx --test tests/technical-planning.test.ts tests/technical-design-job-worker.test.mjs tests/design-execution.test.mjs tests/design-patch.test.mjs",
     "test:planning:integration": "node --env-file=.env --import tsx --test tests/technical-design-jobs.integration.test.ts"
   },
   "dependencies": {
     "@canva/app-middleware": "^0.0.0-beta.8",
-    "@meforma/vue-toaster": "^1.3.0",
     "@nuxt/image": "^2.0.0",
     "@nuxtjs/supabase": "^2.0.3",
     "@stripe/stripe-js": "^8.6.1",
@@ -44,6 +50,11 @@
   "devDependencies": {
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
+    "@nuxt/eslint": "^1.17.0",
+    "eslint": "^10.14.0",
+    "vue-tsc": "^3.3.14",
+    "@playwright/test": "^1.65.0",
+    "vitest": "^5.1.0",
     "yaml": "^2.8.2"
   }
 }

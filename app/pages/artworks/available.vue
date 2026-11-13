@@ -13,9 +13,8 @@ useSeoMeta({
 });
 
 const { getArtworks } = useArtworks();
-const imagesLoaded = ref(false);
 
-const { data: artworks, pending, error } = await getArtworks();
+const { data: artworks } = await getArtworks();
 
 const availableArtworks = computed(
   () => artworks.value?.filter((artwork) => !artwork.sold) || [],

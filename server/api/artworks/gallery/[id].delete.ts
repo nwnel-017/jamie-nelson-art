@@ -1,9 +1,8 @@
 import { serverSupabaseClient } from "#supabase/server";
-import { server } from "typescript";
 import { deleteGalleryImage } from "~~/server/services/artworks.service";
 
 export default defineEventHandler(async (event) => {
-  const admin = await requireAdmin(event);
+  await requireAdmin(event);
 
   const id = event.context.params?.id as string;
 

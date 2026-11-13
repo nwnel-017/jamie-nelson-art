@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { ref } from "vue";
-import { iso } from "zod";
 
 const isOpen = ref(false);
 
@@ -23,8 +22,8 @@ const closeNav = () => {
           <NuxtLink to="/" class="dashLink" @click="closeNav">HOME</NuxtLink>
           <NuxtLink
             to="/collections/collections"
-            @click="closeNav"
             class="dashLink"
+            @click="closeNav"
             >ORIGINAL ARTWORKS</NuxtLink
           >
           <NuxtLink to="/artworks/gallery" class="dashLink" @click="closeNav"
@@ -42,15 +41,15 @@ const closeNav = () => {
         </div>
       </div>
       <div
-        @click="toggleNav"
         class="hamburger"
         :class="{ open: isOpen }"
         role="button"
         :aria-expanded="isOpen"
+        @click="toggleNav"
       >
-        <span></span>
-        <span></span>
-        <span></span>
+        <span />
+        <span />
+        <span />
       </div>
     </div>
   </div>
@@ -69,6 +68,8 @@ const closeNav = () => {
 .navBar {
   width: 100%;
   height: 5rem;
+  position: relative;
+  z-index: 1000;
   padding: 0 1rem;
   background-color: var(--theme-off-white);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -79,14 +80,14 @@ const closeNav = () => {
 }
 
 .linkItems {
-  position: fixed;
+  position: absolute;
   right: 0;
-  top: 0;
+  top: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  transform: translateY(-200%);
+  transform: translateY(-1rem);
   transition: transform 0.3s ease-in-out;
   background-color: white;
   border-radius: 8px;
@@ -94,10 +95,14 @@ const closeNav = () => {
   width: 50%;
   min-height: 70dvh;
   padding: 2rem;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .linkItems.expanded {
   transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .dashLink {
@@ -194,6 +199,8 @@ const closeNav = () => {
     padding: 0;
     gap: 2rem;
     min-height: auto;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .verticalSpaced {

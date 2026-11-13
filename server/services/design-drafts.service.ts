@@ -3,11 +3,11 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "#types/supabase/database";
 import { HandoffError } from "@server/utils/agent/errors";
-import {
-  type DesignRequest,
-  type DesignDraft,
-  type DraftAnalysis,
-  type DraftAnswer,
+import type {
+  DesignRequest,
+  DesignDraft,
+  DraftAnalysis,
+  DraftAnswer,
 } from "@server/utils/agent/design-request";
 import { getDesignRequest } from "@server/services/design-requests.service";
 

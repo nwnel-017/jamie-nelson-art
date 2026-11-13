@@ -55,8 +55,8 @@ async function viewCollection(collectionId: string) {
       <div
         v-for="collection in collections"
         :key="collection.id"
-        @click="viewCollection(collection.id)"
         class="collectionContainer clickable"
+        @click="viewCollection(collection.id)"
       >
         <div class="collectionImgWrapper">
           <NuxtImg

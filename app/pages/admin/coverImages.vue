@@ -30,7 +30,7 @@ async function removeImage(id: number) {
     startLoading();
     await removeCoverImage(id);
     toast.success("Image has been removed!");
-  } catch (err) {
+  } catch {
     toast.error("Something went wrong");
   } finally {
     stopLoading();

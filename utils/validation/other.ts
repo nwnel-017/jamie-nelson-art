@@ -1,5 +1,4 @@
-import { uuidSchema } from "./schemas/common";
-import { collectionNameSchema, orderStatusSchema } from "./schemas/common";
+import { uuidSchema, collectionNameSchema, orderStatusSchema } from "./schemas/common";
 
 export const validateUUID = (uuid: string) => {
   return uuidSchema.safeParse(uuid);

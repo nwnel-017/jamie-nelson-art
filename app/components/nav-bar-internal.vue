@@ -29,13 +29,13 @@ const logout = async () => {
 
 <template>
   <div>
-    <div @click="toggleNav" class="hamburger">
-      <span></span>
-      <span></span>
-      <span></span>
+    <div class="hamburger" @click="toggleNav">
+      <span />
+      <span />
+      <span />
     </div>
     <div class="navBarInternal" :class="{ open: isOpen }">
-      <button @click="toggleNav" class="exitBtn">x</button>
+      <button class="exitBtn" @click="toggleNav">x</button>
       <NuxtLink to="/admin/dashboard" class="dashLink" @click="toggleNav"
         >Dashboard</NuxtLink
       >
