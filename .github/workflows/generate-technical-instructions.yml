@@ -238,6 +238,7 @@ jobs:
           JOB_ID: ${{ inputs.job_id }}
           DESIGN_ID: ${{ inputs.design_id }}
           BASE_BRANCH: ${{ inputs.base_branch }}
+          WORKFLOW_REF: ${{ github.ref_name }}
         run: |
           branch="agent/design-${DESIGN_ID}"
           existing=$(gh pr list --base "$BASE_BRANCH" --head "$branch" --json number --jq '.[0].number // empty')
@@ -250,7 +251,7 @@ jobs:
           fi
           head_sha=$(git rev-parse HEAD)
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$head_sha" -f state=pending -f context=design-verification -f description="Awaiting design verification"
-          gh workflow run verify-design-pr.yml --ref "$BASE_BRANCH" \
+          gh workflow run verify-design-pr.yml --ref "$WORKFLOW_REF" \
             -f pr_number="$pr_number" -f design_id="$DESIGN_ID" -f repair_count=0
 
   report:

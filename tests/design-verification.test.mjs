@@ -71,3 +71,20 @@ test('verification publishes pass/fail status on the exact reviewed SHA', t => {
     assert.match(args, new RegExp(`state=${expected}`));
   }
 });
+
+
+test('publication dispatches verification from the trusted workflow branch rather than the source branch', t => {
+  const generation = parse(readFileSync(new URL('../.github/workflows/generate-technical-instructions.yml', import.meta.url), 'utf8'));
+  const step = generation.jobs.publish.steps.find(step => step.name === 'Open pull request');
+  assert.equal(step.env.WORKFLOW_REF, '${{ github.ref_name }}');
+  const dir = mkdtempSync(join(tmpdir(), 'verification-dispatch-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const output = join(dir, 'args');
+  writeFileSync(join(dir, 'gh'), '#!/bin/sh\nif [ "$1" = pr ] && [ "$2" = list ]; then echo 17; fi\nif [ "$1" = workflow ]; then printf "%s\\n" "$@" > "$TEST_ARGS"; fi\n');
+  writeFileSync(join(dir, 'git'), '#!/bin/sh\necho aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n');
+  chmodSync(join(dir, 'gh'), 0o755);
+  chmodSync(join(dir, 'git'), 0o755);
+  const result = spawnSync('bash', ['-e', '-c', step.run], { encoding: 'utf8', env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, TEST_ARGS: output, BASE_BRANCH: 'source', WORKFLOW_REF: 'trusted-workflows', DESIGN_ID: '12345678-1234-4234-8234-123456789abc', JOB_ID: 'job', GITHUB_REPOSITORY: 'owner/repo' } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(readFileSync(output, 'utf8'), /--ref\ntrusted-workflows\n/);
+});
