@@ -269,8 +269,7 @@ Canva Publish completes once approval is accepted.
 The publisher validates generated patches before committing. Only presentation
 files under app, assets, public, components, pages, and layouts are permitted;
 backend, authentication, workflow, executable, and symlink changes are rejected.
-A stale branch rejects publication rather than overwriting newer work. No automatic
-PR verification, repairs, or email notification runs at this stage.
+A stale branch rejects publication rather than overwriting newer work. The verification workflow described below runs after PR publication.
 
 Enable GitHub Actions permission to create pull requests. The isolated publisher
 uses contents and pull-requests write permissions; model jobs have read-only
@@ -279,3 +278,36 @@ GitHub permissions and no persisted checkout credentials.
 Run `npm run test:planning` for planning, execution preparation, and patch checks.
 Run `npm run test:planning:integration` for local Supabase job lifecycle checks.
 Integration tests refuse hosted Supabase URLs.
+
+### Generated PR verification and notification
+
+After publication, the implementation workflow marks the exact PR commit pending
+and explicitly dispatches `verify-design-pr.yml`. This avoids relying on PR events
+from GitHub-token-created changes. Allow Actions write and statuses write for the
+isolated publisher; model jobs remain unable to push or mint backend identities.
+
+Verification runs mandatory handoff, planning, verification, and Canva checks plus
+both production builds. A separate read-only model reviews the PR diff. Failed
+checks or actionable findings permit at most two automated repairs; each patch is
+validated and rejected if the PR branch has advanced, then verified again. Failures
+that automation cannot resolve remain visible for human attention. Configure
+`CODEX_MODEL` in Actions to choose the review/repair model (default `gpt-5.4`).
+The existing `OPENAI_API_KEY` supplies model access. Nothing merges automatically.
+
+A clean result records `design-verification` success on the reviewed SHA. The
+isolated notification job confirms the PR is still open at that SHA, then finds
+a successful GitHub deployment for that same commit in environment `Preview`
+(case-insensitive). Set `DESIGN_PREVIEW_ENVIRONMENT` if your preview integration
+uses another environment. Enable your hosting provider's GitHub deployment
+integration; static or placeholder URLs are never emailed. Missing or unfinished
+previews fail notification clearly; rerun verification after the preview is ready.
+Notification failure does not change a successful code-verification status.
+
+Configure Actions secrets `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `ADMIN_EMAIL`.
+The notification job requires deployments read permission, but does not share its
+Resend secret with checks or model jobs. Email idempotency uses PR number and SHA;
+Resend deduplicates requests for 24 hours, so later reruns may send another email.
+
+Run `npm run test:verification` for workflow conditions, repair bounds, stale-head
+protection, exact-commit statuses, preview resolution, and mocked email requests.
+No tests send real email or create GitHub deployments.

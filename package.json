@@ -14,7 +14,8 @@
     "test:handoff": "node --import tsx --test tests/agent-handoff.test.ts tests/ai-model.test.ts tests/design-clarifications.test.ts",
     "canva:user-id": "node --import tsx scripts/canva-user-id.ts",
     "test:planning": "node --import tsx --test tests/technical-planning.test.ts tests/technical-design-job-worker.test.mjs tests/design-execution.test.mjs tests/design-patch.test.mjs",
-    "test:planning:integration": "node --env-file=.env --import tsx --test tests/technical-design-jobs.integration.test.ts"
+    "test:planning:integration": "node --env-file=.env --import tsx --test tests/technical-design-jobs.integration.test.ts",
+    "test:verification": "node --test tests/design-verification.test.mjs tests/design-ready-email.test.mjs"
   },
   "dependencies": {
     "@canva/app-middleware": "^0.0.0-beta.8",
