@@ -22,6 +22,7 @@ if (import.meta.server) {
 <template>
   <NuxtLoadingIndicator color="var(--text-color)" :height="2" />
   <LoadingOverlay />
+  <PreviewBanner v-if="useRuntimeConfig().public.isVercelPreview === true" />
   <NuxtLayout>
     <Toaster
       rich-colors

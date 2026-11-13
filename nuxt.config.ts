@@ -53,6 +53,7 @@ export default defineNuxtConfig({
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
 
     public: {
+      isVercelPreview: process.env.IS_VERCEL_PREVIEW === "true",
       supabaseUrl: process.env.SUPABASE_URL,
       admin: process.env.ADMIN_EMAIL,
       stripeDomesticShippingId: process.env.STRIPE_SHIPPING_ID_DOMESTIC,
