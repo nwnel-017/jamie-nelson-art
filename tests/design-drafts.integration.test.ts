@@ -334,7 +334,7 @@ test("real draft transactions enforce versions, readiness, concurrency, limits a
         .delete()
         .eq("id", id)
         .eq("canva_user_id", owner);
-      if (error) throw error;
+      assert.ifError(error);
     }
   }
 });

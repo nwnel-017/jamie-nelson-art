@@ -1,4 +1,4 @@
-import { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "#types/supabase/database";
 // import { getArtworkForCollection } from "./artworks.service";
 
@@ -99,7 +99,7 @@ async function deleteCollection(
     await supabase.from("collections").delete().eq("id", id);
   } catch (err) {
     console.log("Something went wrong while deleting the collection: " + err);
-    throw new Error("Failed to delete collection!");
+    throw new Error("Failed to delete collection!", { cause: err });
   }
 }
 

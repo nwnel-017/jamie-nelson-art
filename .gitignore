@@ -31,3 +31,8 @@ logs
 # supabase
 supabase/.temp
 supabase/.branches
+
+supabase/.temp/
+playwright-report/
+test-results/
+supabase/.branches/

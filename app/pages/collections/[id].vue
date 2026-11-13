@@ -10,35 +10,23 @@ const route = useRoute();
 
 const collectionId = computed(() => route.params.id as string);
 
-const {
-  data: artworks,
-  pending: artworksPending,
-  error: artworksError,
-} = await useFetch<ArtworkRow[]>(`/api/collections/${collectionId.value}`);
+const { data: artworks } = await useFetch<ArtworkRow[]>(`/api/collections/${collectionId.value}`);
 
-const {
-  data: collectionDetails,
-  pending: getCollectionDetailsPending,
-  error: getCollectionDetailsError,
-} = await useFetch<CollectionDetails>(
+const { data: collectionDetails } = await useFetch<CollectionDetails>(
   `/api/collections/details/${collectionId.value}`,
 );
 
 useSeoMeta({
   title: () => collectionDetails.value?.collection_name || "Collection",
   description: () =>
-    collectionDetails.value?.description ||
+    collectionDetails.value?.desc ||
     `Explore artworks from the ${collectionDetails.value?.collection_name || "featured"} collection by Jamie Nelson.`,
   ogTitle: () => collectionDetails.value?.collection_name || "Collection",
   ogDescription: () =>
-    collectionDetails.value?.description ||
+    collectionDetails.value?.desc ||
     `Explore artworks from the ${collectionDetails.value?.collection_name || "featured"} collection by Jamie Nelson.`,
-  ogImage: () => collectionDetails.value?.image_path || undefined,
 });
 
-const availableArtworks = computed(
-  () => artworks.value?.filter((artwork) => !artwork.sold) || [],
-);
 </script>
 
 <template>

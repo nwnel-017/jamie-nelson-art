@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { OrderRow } from "~~/types/supabase/tables";
 import { formatFunds } from "#imports";
-const props = defineProps<{ order?: OrderRow }>();
+defineProps<{ order?: OrderRow }>();
 
 const emit = defineEmits<{
   (e: "cancel"): void;

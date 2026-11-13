@@ -5,7 +5,6 @@ export async function validateImageFile(file?: UploadInput | null) {
     return false;
   }
 
-  let buffer = file.buffer;
   const type = file.contentType;
   if (
     !type ||

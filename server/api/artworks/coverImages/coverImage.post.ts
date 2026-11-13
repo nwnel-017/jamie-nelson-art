@@ -1,11 +1,11 @@
 import { validateImageFile } from "~~/utils/validation/image";
 import { addCoverImage } from "@server/services/artworks.service";
 import { serverSupabaseClient } from "#supabase/server";
-import { UploadInput } from "@server/services/storage.service";
+import type { UploadInput } from "@server/services/storage.service";
 
 export default defineEventHandler(async (event) => {
   // 1.) Require authentication
-  const user = await requireAdmin(event);
+  await requireAdmin(event);
 
   const formData = await readMultipartFormData(event);
 
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  let image: UploadInput = {
+  const image: UploadInput = {
     filename: imageField?.filename || "",
     buffer: imageField?.data || Buffer.from([]),
     size: imageField?.data ? imageField.data.length : 0,

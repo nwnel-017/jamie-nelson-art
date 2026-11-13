@@ -1,6 +1,6 @@
 import { addGalleryImages } from "@server/services/artworks.service";
 import { serverSupabaseClient } from "#supabase/server";
-import { UploadInput } from "@server/services/storage.service";
+import type { UploadInput } from "@server/services/storage.service";
 import { validateImageFile } from "~~/utils/validation/image";
 import { validateUUID } from "@utils/validation/other";
 
@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   console.log("Received request to upload gallery images!");
 
   // 1.) Require authentication
-  const user = await requireAdmin(event);
+  await requireAdmin(event);
 
   const formData = await readMultipartFormData(event);
 
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
 
   const images: UploadInput[] = [];
 
-  for (let img of imageField) {
+  for (const img of imageField) {
     const image: UploadInput = {
       filename: img?.filename || "",
       buffer: img?.data || Buffer.from([]),

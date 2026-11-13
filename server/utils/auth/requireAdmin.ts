@@ -1,7 +1,5 @@
 import type { H3Event } from "h3";
-import { serverSupabaseUser, serverSupabaseClient } from "#supabase/server";
-import { SupabaseClient } from "@supabase/supabase-js";
-import { Database } from "#types/supabase/database";
+import { serverSupabaseUser } from "#supabase/server";
 
 export async function requireAdmin(event: H3Event) {
   const user = await serverSupabaseUser(event);
