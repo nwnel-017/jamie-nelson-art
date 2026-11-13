@@ -194,7 +194,7 @@ export const SettingsUi = ({
         <Text>
           {intl.formatMessage({
             defaultMessage:
-              "Send your design to your portfolio with instructions for your AI husband to complete.",
+              "Send your design to your portfolio with instructions for your AI agent to complete.",
             description: "Explains the portfolio handoff form",
           })}
         </Text>
@@ -238,7 +238,7 @@ export const SettingsUi = ({
         />
         <FormField
           label={intl.formatMessage({
-            defaultMessage: "AI husband's instructions",
+            defaultMessage: "AI agent's instructions",
             description: "Label for instructions to the portfolio agent",
           })}
           control={(props) => (
