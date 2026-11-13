@@ -16,6 +16,36 @@ import {
 import { VerificationAgent } from "../server/utils/agent/verification-agent";
 import { HandoffError } from "../server/utils/agent/errors";
 import { submissionHash } from "../server/utils/agent/submission-hash";
+import {
+  uploadDesignImage,
+  deleteDesignImage,
+} from "../server/services/website-designs-storage.service";
+
+test("design images upload to real local storage and are publicly readable", async () => {
+  assert.ok(
+    ["127.0.0.1", "localhost"].includes(
+      new URL(process.env.SUPABASE_URL!).hostname,
+    ),
+    "Only local Supabase may be used",
+  );
+  const client = createClient<Database>(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII=",
+    "base64",
+  );
+  const image = await uploadDesignImage(client, png);
+  try {
+    const response = await fetch(image.url);
+    assert.equal(response.status, 200);
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), png);
+  } finally {
+    await deleteDesignImage(client, image.path);
+  }
+});
 
 // Explicit opt-in script: npm run test:drafts:integration (loads local .env).
 test("real draft transactions enforce versions, readiness, concurrency, limits and idempotency", async () => {
