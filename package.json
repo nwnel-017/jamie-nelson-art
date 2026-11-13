@@ -45,6 +45,11 @@
     "vue3-lottie": "^3.3.1",
     "zod": "^4.3.5"
   },
+  "overrides": {
+    "ipx": {
+      "sharp": "$sharp"
+    }
+  },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
     "@playwright/test": "^1.65.0",
