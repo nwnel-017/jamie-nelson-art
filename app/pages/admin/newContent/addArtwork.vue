@@ -23,6 +23,8 @@ const artwork = reactive<ArtworkData>({
   description: "",
   price: "",
   dimensions: "",
+  year: "",
+  medium: "",
   collection: "",
   artwork_note: "",
   cover_image: false,
@@ -33,8 +35,8 @@ const collectionName = ref<string>("");
 // To Do: research which is better - this way or using async data in artworks/id.vue
 const {
   data: collections,
-  pending: loadingCollections,
-  error: collectionError,
+
+
 } = await getCollections();
 
 const collectionItems = computed<DropDown[]>(
@@ -69,6 +71,8 @@ const submit = async () => {
     artwork.collection,
     artwork.artwork_note || "",
     artwork.cover_image || false,
+    String(artwork.year ?? "").trim(),
+    artwork.medium?.trim() || "",
   );
 
   if (!response.success) {
@@ -82,6 +86,8 @@ const submit = async () => {
   image.value = null;
   artwork.price = "";
   artwork.dimensions = "";
+  artwork.year = "";
+  artwork.medium = "";
   artwork.collection = "";
   artwork.artwork_note = "";
 
@@ -92,19 +98,31 @@ const submit = async () => {
 <template>
   <div class="verticalContent">
     <h1>Add Artwork here!</h1>
-    <form @submit.prevent="submit" class="submissionForm">
+    <form class="submissionForm" @submit.prevent="submit">
       <label for="title">Title</label>
-      <input type="text" v-model="artwork.title" />
+      <input v-model="artwork.title" type="text" >
       <label for="description">Artwork description</label>
-      <input type="text" v-model="artwork.description" />
+      <input v-model="artwork.description" type="text" >
       <label for="price">Price (USD)</label>
-      <input type="text" v-model="artwork.price" inputmode="decimal" />
+      <input v-model="artwork.price" type="text" inputmode="decimal" >
       <label for="dimensions">Dimensions</label>
-      <input type="text" v-model="artwork.dimensions" />
+      <input v-model="artwork.dimensions" type="text" >
+      <label for="year">Year (Optional)</label>
+      <input
+        id="year"
+        v-model="artwork.year"
+        type="number"
+        inputmode="numeric"
+        min="1900"
+        max="2100"
+        step="1"
+      >
+      <label for="medium">Medium (Optional)</label>
+      <input id="medium" v-model="artwork.medium" type="text" >
       <label for="artwork_note">Artwork Note (Optional)</label>
-      <input type="text" v-model="artwork.artwork_note" />
+      <input v-model="artwork.artwork_note" type="text" >
       <label for="image">Artwork Image</label>
-      <input @change="onFileChange" name="image" accept="image" type="file" />
+      <input name="image" accept="image" type="file" @change="onFileChange" >
       <div class="">
         <DropDown
           label="Collection"
@@ -114,7 +132,7 @@ const submit = async () => {
         <span>{{ collectionName }}</span>
       </div>
       <div>
-        <input type="checkbox" v-model="artwork.cover_image" id="cover_image" />
+        <input id="cover_image" v-model="artwork.cover_image" type="checkbox" >
         <label for="cover_image">Set as collection cover image</label>
       </div>
       <button variant="primary" type="submit" size="sm">Submit</button>

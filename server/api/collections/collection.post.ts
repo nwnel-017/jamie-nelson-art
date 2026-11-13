@@ -1,10 +1,10 @@
-import { requireAdmin } from "#imports";
+import { requireAdmin } from "@server/utils/auth/requireAdmin";
 import { serverSupabaseClient } from "#supabase/server";
 import { createCollection } from "@server/services/collections.service";
 import { validateCollectionName } from "~~/utils/validation/other";
 
 export default defineEventHandler(async (event) => {
-  const isAdmin = await requireAdmin(event);
+  await requireAdmin(event);
 
   const body = await readBody(event);
   const { name } = body;

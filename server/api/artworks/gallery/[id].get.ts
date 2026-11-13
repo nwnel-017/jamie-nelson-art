@@ -1,8 +1,7 @@
-import { requireAdmin } from "@server/utils/auth/requireAdmin";
 import { serverSupabaseClient } from "#supabase/server";
 import { getGalleryImages } from "@server/services/artworks.service";
-import { SupabaseClient } from "@supabase/supabase-js";
-import { Database } from "#types/supabase/database";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "#types/supabase/database";
 
 export default defineEventHandler(async (event) => {
   console.log("hit gallery GET api route");

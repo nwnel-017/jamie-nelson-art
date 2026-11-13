@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import ArrowIcon from "./icons/ArrowIcon.vue";
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     direction?: "up" | "down" | "left" | "right";
     size?: string;

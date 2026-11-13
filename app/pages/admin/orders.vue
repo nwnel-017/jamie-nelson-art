@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import type { Order } from "@stripe/stripe-js";
 import { toast } from "vue-sonner";
 
 definePageMeta({
@@ -17,7 +16,7 @@ const { startLoading, stopLoading } = useLoading();
 
 const { data: orders, pending, error } = await getOrders();
 
-const selectedOrder = ref<any | null>(null);
+const selectedOrder = ref<string | null>(null);
 const showOrderDetails = ref(false);
 const showOrderOptions = ref(false);
 
@@ -74,9 +73,9 @@ function viewOrder(id: string) {
   <div class="verticalContent">
     <PopupOptions
       v-if="showOrderOptions"
+      :items="['PAID', 'SHIPPED', 'DELIVERED']"
       @cancel="cancelStatusChange"
       @select="updateOrderStatus"
-      :items="['PAID', 'SHIPPED', 'DELIVERED']"
     />
     <OrderPopup
       v-if="showOrderDetails"
@@ -95,8 +94,8 @@ function viewOrder(id: string) {
             <span class="header email">Status</span>
             <span class="header">Address</span>
             <span class="header date">Date Created</span>
-            <span></span>
-            <span></span>
+            <span />
+            <span />
             <template v-for="order in orders" :key="order.id">
               <span class="clickable">{{ order?.buyer_name }}</span>
               <span class="clickable">${{ order?.amount }}</span>

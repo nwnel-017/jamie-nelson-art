@@ -1,5 +1,5 @@
-import { ArtworkData } from "~~/types/artworks/artworks";
-import { MultiPartData } from "h3";
+import type { ArtworkData } from "~~/types/artworks/artworks";
+import type { MultiPartData } from "h3";
 
 export const extractArtworkFormData = (form: MultiPartData[]) => {
   const artworkForm: ArtworkData = {
@@ -10,6 +10,9 @@ export const extractArtworkFormData = (form: MultiPartData[]) => {
     price: form.find((field) => field.name === "price")?.data?.toString() || "",
     dimensions:
       form.find((field) => field.name === "dimensions")?.data?.toString() || "",
+    year: form.find((field) => field.name === "year")?.data?.toString() || "",
+    medium:
+      form.find((field) => field.name === "medium")?.data?.toString() || "",
     collection:
       form.find((field) => field.name === "collection")?.data?.toString() || "",
     artwork_note:

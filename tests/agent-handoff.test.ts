@@ -24,7 +24,7 @@ import {
   verifyDesign,
   type CanvaVerifiers,
 } from "../server/utils/agent/canva";
-import { HandoffError } from "../server/utils/agent/errors";
+import { HandoffError, agentRequestError } from "../server/utils/agent/errors";
 import {
   parseHandoff,
   validateInstructions,
@@ -38,11 +38,9 @@ import {
   validatePng,
   downloadImage,
 } from "../server/utils/agent/handoff/image";
-import { validateAgentHandoff } from "../server/utils/agent/handoff/submission-validation";
+import { validateAgentHandoff, validateGatherRequirements } from "../server/utils/agent/handoff/submission-validation";
 import { requireCanvaUser } from "../server/utils/auth/requireCanvaUser";
 import { readAgentBody } from "../server/utils/agent/read-body";
-import { agentRequestError } from "../server/utils/agent/errors";
-import { validateGatherRequirements } from "../server/utils/agent/handoff/submission-validation";
 import { designRequestResponse } from "../server/utils/agent/design-request";
 import { getCanvaVerifiers } from "../server/utils/agent/canva";
 

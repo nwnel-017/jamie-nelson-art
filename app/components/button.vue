@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: "AppButton" });
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 // type Size = "sm" | "md" | "lg";
 

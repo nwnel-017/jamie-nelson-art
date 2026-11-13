@@ -2,8 +2,6 @@
 -- Transaction mode: transactional
 -- Boundary reason: default
 
-DROP EXTENSION IF EXISTS pg_net;
-DROP EXTENSION IF EXISTS pg_graphql;
 CREATE ROLE supabase_privileged_role;
 GRANT supabase_privileged_role TO postgres;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT DELETE, INSERT, SELECT, UPDATE ON TABLES TO anon;
