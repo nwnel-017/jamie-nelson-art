@@ -50,7 +50,7 @@ The downloader initially allows only the exact `export-download.canva.com` host,
 
 Limits: 64 KiB JSON body; one PNG and one page; 4,000 instruction characters; 5 MiB downloaded bytes; 10,000 pixels per dimension and 25 million total pixels. Encoded downloads, animated PNGs, corrupt PNGs and trailing data are rejected. Download deadline is 8 seconds; decoded dimensions must agree with the export metadata. A design token proves design identity, not a cryptographic binding to the supplied download URL, bytes, title or instructions.
 
-Instruction checks reject blank/oversized text, hidden controls, common role override delimiters, secret extraction and shell execution requests. This is conservative screening, not a guarantee against prompt injection; it can reject legitimate wording and can miss attacks. All accepted instructions, image text/OCR and metadata remain untrusted data. Any future agent must enforce its own fixed instructions, tool restrictions and authorization rather than executing submitted text. No agent or model is called here.
+Instruction checks reject blank/oversized text, hidden controls, common role override delimiters, secret extraction and shell execution requests. This is conservative screening, not a guarantee against prompt injection; it can reject legitimate wording and can miss attacks. All accepted instructions, image text/OCR and metadata remain untrusted data. Any future agent must enforce its own fixed instructions, tool restrictions and authorization rather than executing submitted text. After validation and persistence, the backend invokes the configured analysis model to produce requirements and clarification questions.
 
 Errors use HTTP 400 (payload), 401 (tokens), 403 (user not allowed), 413 (limits), 415 (unsupported format), 422 (instructions or image), 502/504 (download failure/timeout), or 503 (access not configured). Responses do not include JWTs, signed export URLs or internal transport errors.
 
@@ -68,14 +68,10 @@ Canva requires the uploaded message bundle to replace its generic publish error
 banner with the custom submission message.
 
 Clarification rounds POST answers to `/api/agent/clarify-requirements/:id` and
-render the returned draft directly. Ready drafts show an explicit Approve button,
-which sends a bodyless POST to `/api/agent/execute/:id`. Approval queues the GitHub
-Actions technical planner and confirms the request is queued. Canva then displays
-“Your agent is working on your request. You will be sent an email when it is ready
-to review.” It does not wait for planning or execute website changes. Publish
-remains disabled until that approval response is accepted. After CI and the
-automated review pass, the GitHub workflow emails the admin the preview and PR
-links. See the root README for Resend configuration.
+render the returned draft directly. Ready drafts show the final requirements,
+plan, and answer history for review. Approval, code generation, and notification
+are unavailable in this stage. Publish remains disabled while an existing
+analysis is displayed; use Start a new request to submit another design.
 There are no GET/polling requests. The latest response, answer edits, and retry IDs
 are cached in local storage scoped to the Canva app, user, team, design, and backend.
-The saved workflow is cleared on approval or when starting a new request.
+The saved workflow is cleared when starting a new request.

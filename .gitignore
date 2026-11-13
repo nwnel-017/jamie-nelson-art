@@ -30,3 +30,4 @@ logs
 
 # supabase
 supabase/.temp
+supabase/.branches
