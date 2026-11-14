@@ -80,5 +80,5 @@ The saved workflow is cleared on approval or when starting a new request.
 Ready drafts offer Approve, which sends a bodyless POST to
 `/api/agent/execute/:id`. An accepted response queues technical planning and
 implementation; Canva confirms that a pull request will be prepared. Publish
-completes after acceptance and the saved workflow is cleared. This stage does not
-automatically verify, repair, merge, or send email about the generated PR.
+completes after acceptance and the saved workflow is cleared. The generated PR is verified and can receive up to two automated repairs. A clean
+review and ready preview trigger an admin email; nothing merges automatically.
