@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, chmodSync, symlinkSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -6,10 +6,10 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync, spawnSync } from 'node:child_process';
 
-const validator = fileURLToPath(new URL('../scripts/validate-design-patch.mjs', import.meta.url));
+const validator = fileURLToPath(new URL('../../scripts/validate-design-patch.mjs', import.meta.url));
 function patch(t, name, mode = 'file') {
   const dir = mkdtempSync(join(tmpdir(), 'design-patch-'));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  t.onTestFinished(() => rmSync(dir, { recursive: true, force: true }));
   const repo = join(dir, 'repo');
   mkdirSync(repo);
   const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });

@@ -1,15 +1,16 @@
 // TO DO --> review existing tests and make sure they pass
-import { test } from "node:test";
+import { afterEach, test, vi } from "vitest";
+
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { HandoffError } from "../server/utils/agent/errors";
-import { executeDesignRequest } from "../server/services/execute-design.service";
-import type { Database } from "../types/supabase/database";
+import { HandoffError } from "../../server/utils/agent/errors";
+import { executeDesignRequest } from "../../server/services/execute-design.service";
+import type { Database } from "../../types/supabase/database";
 import {
   reserveAnalysis,
   finishAnalysis,
-} from "../server/services/design-drafts.service";
+} from "../../server/services/design-drafts.service";
 import {
   reserveTechnicalDesignJob,
   markTechnicalJobDispatched,
@@ -17,7 +18,9 @@ import {
   reconcileTechnicalDesignRun,
   finishTechnicalDesignJob,
   getTechnicalDesignJobForDraft,
-} from "../server/services/technical-design-jobs.service";
+} from "../../server/services/technical-design-jobs.service";
+
+afterEach(() => vi.restoreAllMocks());
 
 function localClient() {
   assert.ok(
@@ -353,7 +356,7 @@ for (const completedBeforeDispatch of [false, true]) {
 }
 
 for (const dispatchOutcome of ["rejected", "uncertain"] as const) {
-  test(`approval preserves a ${dispatchOutcome} dispatch without sending another workflow`, async (t) => {
+  test(`approval preserves a ${dispatchOutcome} dispatch without sending another workflow`, async () => {
     const client = localClient();
     const userId = `technical-dispatch-${randomUUID()}`;
     const { data: request, error } = await client
@@ -410,7 +413,7 @@ for (const dispatchOutcome of ["rejected", "uncertain"] as const) {
       };
       const originalFetch = globalThis.fetch;
       let githubCalls = 0;
-      t.mock.method(globalThis, "fetch", async (input, init) => {
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
         const url = new URL(String(input));
         if (url.hostname !== "api.github.com")
           return originalFetch(input, init);
@@ -486,7 +489,7 @@ for (const dispatchOutcome of ["rejected", "uncertain"] as const) {
   });
 }
 
-test("approval dispatches a ready draft once and records the GitHub run ID", async (t) => {
+test("approval dispatches a ready draft once and records the GitHub run ID", async () => {
   const client = localClient();
   const userId = `technical-success-${randomUUID()}`;
   const { data: request, error } = await client
@@ -543,7 +546,7 @@ test("approval dispatches a ready draft once and records the GitHub run ID", asy
     };
     const originalFetch = globalThis.fetch;
     let githubCalls = 0;
-    t.mock.method(globalThis, "fetch", async (input, init) => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = new URL(String(input));
       if (url.hostname !== "api.github.com") return originalFetch(input, init);
       githubCalls++;

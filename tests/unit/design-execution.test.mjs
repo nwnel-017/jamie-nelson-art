@@ -1,18 +1,18 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { validateTechnicalInstructions } from '../scripts/technical-instructions-validation.mjs';
+import { validateTechnicalInstructions } from '../../scripts/technical-instructions-validation.mjs';
 
-const script = fileURLToPath(new URL('../scripts/prepare-design-execution.mjs', import.meta.url));
+const script = fileURLToPath(new URL('../../scripts/prepare-design-execution.mjs', import.meta.url));
 const valid = () => ({ objective: 'Blue gallery', tasks: [{ id: 'color', description: 'Set gallery color', files: ['app/pages/gallery.vue'], acceptance_criteria: ['Gallery is blue'] }], verification_steps: ['Run build'], constraints: [], blockers: [] });
 
 function run(t, data, raw = false) {
   const dir = mkdtempSync(join(tmpdir(), 'design-execution-'));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  t.onTestFinished(() => rmSync(dir, { recursive: true, force: true }));
   const job = join(dir, 'technical-design-job');
   mkdirSync(job);
   writeFileSync(join(job, 'technical-instructions.json'), raw ? data : JSON.stringify(data));
