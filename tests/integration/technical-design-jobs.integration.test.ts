@@ -80,6 +80,7 @@ async function createReadyDraft(
     answers: [],
     limit: 4,
     analysis: {
+      response: "The gallery design is ready for implementation.",
       requirements: ["Make the gallery blue."],
       ambiguities: [],
       clarifying_questions: [],
@@ -287,6 +288,7 @@ for (const completedBeforeDispatch of [false, true]) {
         answers: [],
         limit: 4,
         analysis: {
+          response: "The gallery design is ready for implementation.",
           requirements: ["Make gallery blue"],
           ambiguities: [],
           clarifying_questions: [],
@@ -390,6 +392,7 @@ for (const dispatchOutcome of ["rejected", "uncertain"] as const) {
         answers: [],
         limit: 4,
         analysis: {
+          response: "The gallery design is ready for implementation.",
           requirements: ["Make gallery blue"],
           ambiguities: [],
           clarifying_questions: [],
@@ -523,6 +526,7 @@ test("approval dispatches a ready draft once and records the GitHub run ID", asy
       answers: [],
       limit: 4,
       analysis: {
+        response: "The gallery design is ready for implementation.",
         requirements: ["Make gallery blue"],
         ambiguities: [],
         clarifying_questions: [],
