@@ -1,6 +1,6 @@
 # Canva Portfolio App
 
-This canva integration is part of a new feature I am currently implementing. Since the artist often likes to create designs in canva to regularly update the UI, this is an agentic feature that allows the artist to export an image directly from canva, and have the design updated by an AI agent. 
+This canva integration is part of a new feature I am currently implementing. Since the artist often likes to create designs in canva to regularly update the UI, this is an agentic feature that allows the artist to export an image directly from canva, and have the design updated by an AI agent.
 
 Submit a Canva design with instructions for changes to the portfolio website. The app analyzes the design, asks clarifying questions, and saves a plan for review. Once the clarifying questions are answered and the plan is established, the finalized plan of what will be changed is shown to the artist. After approval, the instructions are handed off to a sandboxed agent to complete and open a PR.
 
@@ -32,3 +32,11 @@ To preview locally, run these in separate terminals from the repository root wit
 npm run dev
 npm run canva
 ```
+
+### Approving a ready draft
+
+Ready drafts offer Approve, which sends a bodyless POST to
+`/api/agent/execute/:id`. An accepted response queues technical planning and
+implementation; Canva confirms that a pull request will be prepared. Publish
+completes after acceptance and the saved workflow is cleared. This stage does not
+automatically verify, repair, merge, or send email about the generated PR.

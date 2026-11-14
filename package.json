@@ -18,6 +18,8 @@
     "test": "vitest run",
     "test:rls": "vitest run --config vitest.rls.config.ts",
     "test:e2e": "playwright test",
+    "test:planning": "node --import tsx --test tests/technical-planning.test.ts tests/technical-design-job-worker.test.mjs tests/design-execution.test.mjs tests/design-patch.test.mjs",
+    "test:planning:integration": "node --env-file=.env --import tsx --test tests/technical-design-jobs.integration.test.ts",
     "test:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts"
   },
   "dependencies": {
@@ -57,6 +59,7 @@
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^5.1.0",
-    "vue-tsc": "^3.3.14"
+    "vue-tsc": "^3.3.14",
+    "yaml": "^2.8.2"
   }
 }

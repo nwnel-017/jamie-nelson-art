@@ -29,7 +29,7 @@ function review(
   return {
     status: "app_error",
     message: analysis.ready
-      ? "Your requirements are understood. Please review them."
+      ? "Your requirements are understood. Please review and approve them."
       : "Thank you for submitting. Please answer the following questions before updating your site",
     ...(!analysis.ready
       ? { localizedMessageId: PublishMessages.clarificationRequired.id }
@@ -56,6 +56,8 @@ export async function publishToPortfolio(
       status: "app_error",
       message: "Select one or more valid change options.",
     };
+  if (settings.approvedRequestId)
+    return { status: "completed", externalId: settings.approvedRequestId };
   let token: Awaited<ReturnType<typeof auth.getCanvaUserToken>>;
   try {
     token = await auth.getCanvaUserToken();
@@ -95,9 +97,7 @@ export async function publishToPortfolio(
   saveWorkflow(key, state);
   const started = Date.now();
   let stage = "request";
-  console.info("[canva-publisher] publish.started", {
-    submissionId: initialSubmissionId,
-  });
+  console.info("[canva-publisher] publish.started", { submissionId: initialSubmissionId });
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 90000);
   try {
@@ -119,11 +119,7 @@ export async function publishToPortfolio(
         signal: controller.signal,
       },
     );
-    console.info("[canva-publisher] publish.response", {
-      submissionId: initialSubmissionId,
-      status: response.status,
-      elapsedMs: Date.now() - started,
-    });
+    console.info("[canva-publisher] publish.response", { submissionId: initialSubmissionId, status: response.status, elapsedMs: Date.now() - started });
     stage = "response-body";
     if (!response.ok) {
       let message = "Portfolio request failed.";
@@ -139,21 +135,11 @@ export async function publishToPortfolio(
       return { status: "app_error", message, httpCode: response.status };
     }
     const analysis = parseDesignRequestResponse(await response.json());
-    console.info("[canva-publisher] publish.completed", {
-      submissionId: initialSubmissionId,
-      requestId: analysis.id,
-      elapsedMs: Date.now() - started,
-    });
+    console.info("[canva-publisher] publish.completed", { submissionId: initialSubmissionId, requestId: analysis.id, elapsedMs: Date.now() - started });
     saveWorkflow(key, { ...state, analysis });
     return review(analysis, designId);
   } catch (error) {
-    console.error("[canva-publisher] publish.failed", {
-      submissionId: initialSubmissionId,
-      stage,
-      timedOut: controller.signal.aborted,
-      errorType: error instanceof Error ? error.name : "UnknownError",
-      elapsedMs: Date.now() - started,
-    });
+    console.error("[canva-publisher] publish.failed", { submissionId: initialSubmissionId, stage, timedOut: controller.signal.aborted, errorType: error instanceof Error ? error.name : "UnknownError", elapsedMs: Date.now() - started });
     return {
       status: "app_error",
       message:

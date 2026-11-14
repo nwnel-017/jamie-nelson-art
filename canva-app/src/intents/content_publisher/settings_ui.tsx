@@ -48,6 +48,7 @@ export const SettingsUi = ({
   );
   const previousDesignId = useRef(designId);
   const [analysis, setAnalysis] = useState<DesignRequest>();
+  const [approvedId, setApprovedId] = useState(initial?.approvedRequestId);
   const [restored, setRestored] = useState(false);
   const key = useRef<string | undefined>(undefined);
   const received = useRef(false);
@@ -62,6 +63,7 @@ export const SettingsUi = ({
     if (changedDesign) {
       received.current = false;
       setAnalysis(undefined);
+      setApprovedId(undefined);
     }
     void workflowStorageKey(backendHost, designId).then((value) => {
       if (!active) return;
@@ -104,6 +106,7 @@ export const SettingsUi = ({
               setDesignId(payload.designId);
             received.current = true;
             setAnalysis(result);
+            setApprovedId(undefined);
           } catch {
             /* Ignore unrelated or malformed errors. */
           }
@@ -119,7 +122,7 @@ export const SettingsUi = ({
       });
       return;
     }
-    {
+    if (!approvedId) {
       const previous = loadWorkflow(key.current);
       saveWorkflow(key.current, {
         ...previous,
@@ -128,17 +131,19 @@ export const SettingsUi = ({
         ...(analysis ? { analysis } : {}),
       });
     }
-    // An existing analysis is review-only until approval is introduced.
+    // The first Publish starts analysis. Once a request exists, only approval
+    // can unlock Publish again; entering answers alone must not bypass analysis.
     const canPublish =
       isValidInstructions(instructions) &&
       isValidChangeOptions(changeOptions) &&
-      !analysis;
+      (!analysis || Boolean(approvedId));
     updatePublishSettings({
       publishRef: JSON.stringify({
         instructions,
         changeOptions,
         ...(designId ? { designId } : {}),
         ...(analysis ? { designRequestId: analysis.id } : {}),
+        ...(approvedId ? { approvedRequestId: approvedId } : {}),
       }),
       validityState: canPublish ? "valid" : "invalid_missing_required_fields",
     });
@@ -147,6 +152,7 @@ export const SettingsUi = ({
     changeOptions,
     designId,
     analysis,
+    approvedId,
     restored,
     updatePublishSettings,
   ]);
@@ -160,23 +166,41 @@ export const SettingsUi = ({
         })}
       </Text>
     );
-  if (analysis)
+  if (analysis || approvedId)
     return (
       <div className={styles.scrollContainer}>
         <Rows spacing="2u">
-          <ClarificationUi
-            key={`${analysis.id}:${analysis.draft?.version ?? 0}`}
-            request={analysis}
-            backendHost={backendHost}
-            storageKey={key.current}
-            onSubmitted={setAnalysis}
-          />
+          {approvedId ? (
+            <Text>
+              {intl.formatMessage({
+                defaultMessage:
+                  "Your request has been queued. The agent will prepare a pull request for review.",
+                description:
+                  "Approval accepted and work queued for the agent",
+              })}
+            </Text>
+          ) : (
+            analysis && (
+              <ClarificationUi
+                key={`${analysis.id}:${analysis.draft?.version ?? 0}`}
+                request={analysis}
+                backendHost={backendHost}
+                storageKey={key.current}
+                onSubmitted={setAnalysis}
+                onApproved={() => {
+                  clearWorkflow(key.current);
+                  setApprovedId(analysis.id);
+                }}
+              />
+            )
+          )}
           <Button
             variant="secondary"
             onClick={() => {
               received.current = true;
               clearWorkflow(key.current);
               setAnalysis(undefined);
+              setApprovedId(undefined);
             }}
           >
             {intl.formatMessage({
