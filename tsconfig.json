@@ -1,5 +1,12 @@
 {
   // https://nuxt.com/docs/guide/concepts/typescript
+  "compilerOptions": {
+    "paths": {
+      "@server/*": ["./server/*"],
+      "#types/*": ["./types/*"],
+      "@utils/*": ["./utils/*"]
+    }
+  },
   "files": [],
   "references": [
     {

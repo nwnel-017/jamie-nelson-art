@@ -29,9 +29,15 @@ export default defineNuxtConfig({
   css: ["~/assets/styles/main.css"],
   modules: ["@nuxt/eslint", "@nuxtjs/supabase", "nuxt-lottie", "@nuxt/image", "nuxt-svgo"],
   image: {
-    domains: process.env.SUPABASE_DOMAIN
-      ? [process.env.SUPABASE_DOMAIN]
-      : [],
+    domains: process.env.SUPABASE_DOMAIN ? [process.env.SUPABASE_DOMAIN] : [],
+  },
+  nitro: {
+    externals: {
+      // Sharp loads libvips dynamically, so include its binary in the server bundle.
+      traceInclude: [
+        `@img/sharp-libvips-${process.platform}-${process.arch}/binary`,
+      ],
+    },
   },
   lottie: {
     componentName: "Lottie", // Optional: Customize the component name
@@ -48,6 +54,16 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    maxAnalyzeAttempts: 4,
+    aiProvider: "test",
+    aiApiKey: "",
+    aiModel: "",
+    aiBaseUrl: "https://api.openai.com/v1",
+    canvaAppId: "AAHOGIFETu8",
+    canvaAllowedUserIds: "",
+    canvaAllowUnlistedLocalUsers: false,
+    canvaExportHosts: "export-download.canva.com",
+    canvaAppOrigin: "https://app-aahogifetu8.canva-apps.com",
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     stripeSecretKey: process.env.STRIPE_SECRET_KEY,
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,

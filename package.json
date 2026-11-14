@@ -7,28 +7,36 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
+    "canva": "npm --prefix canva-app run start:preview",
     "postinstall": "nuxt prepare",
     "webhook": "stripe listen --forward-to http://localhost:3000/api/stripe/webhook",
+    "canva:user-id": "node --import tsx scripts/canva-user-id.ts",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "typecheck": "nuxt typecheck",
     "check": "npm run lint && npm run typecheck",
     "test": "vitest run",
     "test:rls": "vitest run --config vitest.rls.config.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts"
   },
   "dependencies": {
+    "@canva/app-middleware": "^0.0.0-beta.8",
     "@nuxt/image": "^2.0.0",
     "@nuxtjs/supabase": "^2.0.3",
     "@stripe/stripe-js": "^8.6.1",
     "@supabase/supabase-js": "^2.90.1",
     "file-type": "^21.3.2",
+    "ipaddr.js": "^2.5.0",
+    "jose": "^6.2.15",
     "lottie-web": "^5.13.0",
     "nuxt": "^4.2.2",
     "nuxt-lottie": "^1.0.8",
     "nuxt-svgo": "^4.2.6",
     "pinia": "^3.0.4",
+    "sharp": "^0.35.5",
     "stripe": "^20.1.2",
+    "undici": "^8.12.3",
     "vue": "^3.5.26",
     "vue-easy-lightbox": "^1.19.0",
     "vue-router": "^4.6.4",
@@ -36,12 +44,19 @@
     "vue3-lottie": "^3.3.1",
     "zod": "^4.3.5"
   },
+  "overrides": {
+    "ipx": {
+      "sharp": "$sharp"
+    }
+  },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
-    "eslint": "^10.14.0",
-    "typescript": "^5.9.3",
-    "vue-tsc": "^3.3.14",
     "@playwright/test": "^1.65.0",
-    "vitest": "^5.1.0"
+    "eslint": "^10.14.0",
+    "supabase": "3.1.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0",
+    "vue-tsc": "^3.3.14"
   }
 }

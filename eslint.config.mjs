@@ -1,3 +1,3 @@
 import withNuxt from "./.nuxt/eslint.config.mjs";
 
-export default withNuxt({ ignores: [".worktrees/**"] });
+export default withNuxt({ ignores: [".worktrees/**", "canva-app/**"] });

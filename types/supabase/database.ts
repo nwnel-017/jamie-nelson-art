@@ -14,6 +14,118 @@ export type Database = {
   }
   public: {
     Tables: {
+
+      design_analyses: {
+        Row: {
+          id: string
+          design_request_id: string
+          submission_id: string
+          base_version: number
+          payload_hash: string
+          status: string
+          version: number | null
+          plan: Json | null
+          requirements: Json | null
+          ambiguities: Json | null
+          clarifying_questions: Json | null
+          answers: Json | null
+          ready: boolean | null
+          created_at: string
+          started_at: string
+          finished_at: string | null
+        }
+        Insert: {
+          id?: string
+          design_request_id: string
+          submission_id: string
+          base_version: number
+          payload_hash: string
+          status?: string
+          version?: number | null
+          plan?: Json | null
+          requirements?: Json | null
+          ambiguities?: Json | null
+          clarifying_questions?: Json | null
+          answers?: Json | null
+          ready?: boolean | null
+          created_at?: string
+          started_at?: string
+          finished_at?: string | null
+        }
+        Update: {
+          id?: string
+          design_request_id?: string
+          submission_id?: string
+          base_version?: number
+          payload_hash?: string
+          status?: string
+          version?: number | null
+          plan?: Json | null
+          requirements?: Json | null
+          ambiguities?: Json | null
+          clarifying_questions?: Json | null
+          answers?: Json | null
+          ready?: boolean | null
+          created_at?: string
+          started_at?: string
+          finished_at?: string | null
+        }
+        Relationships: []
+      }
+      design_requests: {
+        Row: {
+          initial_payload_hash: string | null
+          analyze_attempts: number
+          change_options: string[]
+          analysis_status: string
+          id: string
+          canva_user_id: string | null
+          clarifications: Json
+          clarified_at: string | null
+          design_image: string
+          instructions: string
+          requirements: Json
+          ambiguities: Json
+          clarifying_questions: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          initial_payload_hash?: string | null
+          analyze_attempts?: number
+          change_options?: string[]
+          analysis_status?: string
+          id?: string
+          canva_user_id?: string | null
+          clarifications?: Json
+          clarified_at?: string | null
+          design_image: string
+          instructions: string
+          requirements: Json
+          ambiguities: Json
+          clarifying_questions: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          initial_payload_hash?: string | null
+          analyze_attempts?: number
+          change_options?: string[]
+          analysis_status?: string
+          id?: string
+          canva_user_id?: string | null
+          clarifications?: Json
+          clarified_at?: string | null
+          design_image?: string
+          instructions?: string
+          requirements?: Json
+          ambiguities?: Json
+          clarifying_questions?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       artworks: {
         Row: {
           artwork_note: string | null
@@ -242,7 +354,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      reserve_design_analysis: { Args: { p_request_id: string; p_user_id: string; p_submission_id: string; p_base_version: number; p_payload_hash: string; p_limit: number }; Returns: Json }
+      finish_design_analysis: { Args: { p_request_id: string; p_user_id: string; p_submission_id: string; p_analysis: Json; p_answers: Json }; Returns: number }
+      fail_design_analysis: { Args: { p_request_id: string; p_user_id: string; p_submission_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

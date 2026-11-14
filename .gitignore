@@ -8,7 +8,6 @@ dist
 
 # Node dependencies
 node_modules
-supabase/.temp/
 
 # Logs
 logs
@@ -27,8 +26,13 @@ logs
 # Cursor config
 .cursor
 
-# Test output
+.AGENTS-DRAFT.md
+
+# supabase
+supabase/.temp
+supabase/.branches
+
+supabase/.temp/
 playwright-report/
 test-results/
-supabase/.temp/
 supabase/.branches/
