@@ -1,15 +1,15 @@
-import { createVerificationModel } from "../server/utils/agent/model-factory";
-import { createChatCompletionModel } from "../server/utils/agent/chat-completion-model";
-import { VerificationAgent } from "../server/utils/agent/verification-agent";
-import { VERIFICATION_SYSTEM_PROMPT } from "../server/utils/agent/prompts/verification";
-import { HandoffError } from "../server/utils/agent/errors";
-import { test } from "node:test";
+import { createVerificationModel } from "../../server/utils/agent/model-factory";
+import { createChatCompletionModel } from "../../server/utils/agent/chat-completion-model";
+import { VerificationAgent } from "../../server/utils/agent/verification-agent";
+import { VERIFICATION_SYSTEM_PROMPT } from "../../server/utils/agent/prompts/verification";
+import { HandoffError } from "../../server/utils/agent/errors";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import {
   AiModelAdapter,
   type AiModel,
   type AiModelInput,
-} from "../server/utils/agent/ai-model";
+} from "../../server/utils/agent/ai-model";
 
 test("model adapters can swap providers using the same input and result contract", async () => {
   const input: AiModelInput = {

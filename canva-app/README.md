@@ -54,7 +54,7 @@ Instruction checks reject blank/oversized text, hidden controls, common role ove
 
 Errors use HTTP 400 (payload), 401 (tokens), 403 (user not allowed), 413 (limits), 415 (unsupported format), 422 (instructions or image), 502/504 (download failure/timeout), or 503 (access not configured). Responses do not include JWTs, signed export URLs or internal transport errors.
 
-Run backend checks with `npm run test:handoff` from the root. Run frontend checks with `npm test -- --runInBand`, `npm run lint:check`, and `canva apps build` from this directory. The complete portfolio also requires its existing Supabase/Stripe environment; a local placeholder Stripe test key can be used for this handoff-only test, which does not call Stripe.
+Run backend checks with `npm test` from the root. Run `npm run test:integration` against local Supabase with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` configured. Run frontend checks with `npm test -- --runInBand`, `npm run lint:check`, and `canva apps build` from this directory. The complete portfolio also requires its existing Supabase/Stripe environment; a local placeholder Stripe test key can be used for this handoff-only test, which does not call Stripe.
 
 ### Clarification banner message
 

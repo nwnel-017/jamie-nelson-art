@@ -10,9 +10,6 @@
     "canva": "npm --prefix canva-app run start:preview",
     "postinstall": "nuxt prepare",
     "webhook": "stripe listen --forward-to http://localhost:3000/api/stripe/webhook",
-    "test:drafts:integration": "node --env-file=.env --import tsx --test tests/design-drafts.integration.test.ts",
-    "test:workflow:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.workflow.config.ts",
-    "test:handoff": "node --import tsx --test tests/agent-handoff.test.ts tests/ai-model.test.ts tests/design-clarifications.test.ts",
     "canva:user-id": "node --import tsx scripts/canva-user-id.ts",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
@@ -20,7 +17,8 @@
     "check": "npm run lint && npm run typecheck",
     "test": "vitest run",
     "test:rls": "vitest run --config vitest.rls.config.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@canva/app-middleware": "^0.0.0-beta.8",

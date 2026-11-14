@@ -42,6 +42,6 @@ jobs:
         run: |
           eval "$(supabase status -o env)"
           TEST_SUPABASE_URL="$API_URL" TEST_SUPABASE_ANON_KEY="$ANON_KEY" TEST_SUPABASE_SERVICE_KEY="$SERVICE_ROLE_KEY" npm run test:rls
-          SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npm run test:workflow:integration
+          SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npm run test:integration
       - if: always()
         run: supabase stop --no-backup
