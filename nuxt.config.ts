@@ -55,6 +55,14 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     maxAnalyzeAttempts: 4,
+    planningGithubToken: "",
+    planningRepository: "nwnel-017/jamie-nelson-art",
+    planningRepositoryId: "",
+    planningWorkflowRef: "master",
+    planningSourceRef: "master",
+    planningBackendUrl: "",
+    planningCodexModel: "",
+    planningGithubWebhookSecret: "",
     aiProvider: "test",
     aiApiKey: "",
     aiModel: "",

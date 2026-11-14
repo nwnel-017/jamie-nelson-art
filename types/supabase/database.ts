@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-
+      technical_design_jobs: {
+        Row: {
+          id: string
+          design_request_id: string
+          design_analysis_id: string
+          repository_sha: string
+          prompt_version: string
+          model: string
+          status: string
+          github_run_id: string | null
+          github_run_attempt: number | null
+          technical_instructions: Json | null
+          error: string | null
+          created_at: string
+          updated_at: string
+          started_at: string | null
+          finished_at: string | null
+        }
+        Insert: {
+          id?: string
+          design_request_id: string
+          design_analysis_id: string
+          repository_sha: string
+          prompt_version: string
+          model: string
+          status?: string
+          github_run_id?: string | null
+          github_run_attempt?: number | null
+          technical_instructions?: Json | null
+          error?: string | null
+          created_at?: string
+          updated_at?: string
+          started_at?: string | null
+          finished_at?: string | null
+        }
+        Update: {
+          id?: string
+          design_request_id?: string
+          design_analysis_id?: string
+          repository_sha?: string
+          prompt_version?: string
+          model?: string
+          status?: string
+          github_run_id?: string | null
+          github_run_attempt?: number | null
+          technical_instructions?: Json | null
+          error?: string | null
+          created_at?: string
+          updated_at?: string
+          started_at?: string | null
+          finished_at?: string | null
+        }
+        Relationships: []
+      }
       design_analyses: {
         Row: {
           id: string
@@ -354,6 +407,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      reconcile_technical_design_run: { Args: { p_job_id: string; p_run_id: string; p_run_attempt: number }; Returns: undefined }
+      reserve_technical_design_job: { Args: { p_request_id: string; p_user_id: string; p_repository_sha: string; p_prompt_version: string; p_model: string }; Returns: Json }
+      record_technical_design_job_dispatch: { Args: { p_job_id: string; p_run_id: string | null; p_failed: boolean }; Returns: undefined }
+      claim_technical_design_job: { Args: { p_job_id: string; p_run_id: string; p_run_attempt: number }; Returns: Json }
+      finish_technical_design_job: { Args: { p_job_id: string; p_run_id: string; p_run_attempt: number; p_instructions: Json }; Returns: boolean }
+      fail_technical_design_job: { Args: { p_job_id: string; p_run_id: string; p_run_attempt: number; p_error: string }; Returns: boolean }
       reserve_design_analysis: { Args: { p_request_id: string; p_user_id: string; p_submission_id: string; p_base_version: number; p_payload_hash: string; p_limit: number }; Returns: Json }
       finish_design_analysis: { Args: { p_request_id: string; p_user_id: string; p_submission_id: string; p_analysis: Json; p_answers: Json }; Returns: number }
       fail_design_analysis: { Args: { p_request_id: string; p_user_id: string; p_submission_id: string }; Returns: undefined }
