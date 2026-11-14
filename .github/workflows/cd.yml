@@ -22,9 +22,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
           persist-credentials: false
-      - uses: supabase/setup-cli@v1
-        with:
-          version: 2.58.5
+      - uses: supabase/setup-cli@v3
       - name: Validate production configuration
         run: |
           test -n "$SUPABASE_ACCESS_TOKEN"
@@ -33,4 +31,4 @@ jobs:
       - name: Link production project
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
       - name: Apply pending migrations
-        run: supabase db push --linked --yes
+        run: supabase db push --remote --yes

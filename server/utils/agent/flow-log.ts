@@ -5,8 +5,12 @@ import { HandoffError } from "./errors";
 export function createFlowLog(flow: string) {
   const traceId = randomUUID();
   const started = Date.now();
-  const write = (event: string, metadata: Record<string, unknown> = {}) => {
-    console.info(
+  const write = (
+    event: string,
+    metadata: Record<string, unknown> = {},
+    level: "info" | "error" = "info",
+  ) => {
+    console[level](
       JSON.stringify({
         feature: "canva-publisher",
         flow,
@@ -29,31 +33,20 @@ export function createFlowLog(flow: string) {
         write("stage.completed", { stage, durationMs: Date.now() - start });
         return result;
       } catch (error) {
-        console.error(
-          JSON.stringify({
-            feature: "canva-publisher",
-            flow,
-            traceId,
-            event: "stage.failed",
+        write(
+          "stage.failed",
+          {
             stage,
             durationMs: Date.now() - start,
             ...safeError(error),
-          }),
+          },
+          "error",
         );
         throw error;
       }
     },
     fail(error: unknown) {
-      console.error(
-        JSON.stringify({
-          feature: "canva-publisher",
-          flow,
-          traceId,
-          event: "failed",
-          elapsedMs: Date.now() - started,
-          ...safeError(error),
-        }),
-      );
+      write("failed", safeError(error), "error");
     },
   };
 }

@@ -11,6 +11,7 @@
     "postinstall": "nuxt prepare",
     "webhook": "stripe listen --forward-to http://localhost:3000/api/stripe/webhook",
     "test:drafts:integration": "node --env-file=.env --import tsx --test tests/design-drafts.integration.test.ts",
+    "test:workflow:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.workflow.config.ts",
     "test:handoff": "node --import tsx --test tests/agent-handoff.test.ts tests/ai-model.test.ts tests/design-clarifications.test.ts",
     "canva:user-id": "node --import tsx scripts/canva-user-id.ts",
     "lint": "eslint . --max-warnings=0",
@@ -47,14 +48,20 @@
     "vue3-lottie": "^3.3.1",
     "zod": "^4.3.5"
   },
+  "overrides": {
+    "ipx": {
+      "sharp": "$sharp"
+    }
+  },
   "devDependencies": {
+    "@nuxt/eslint": "^1.17.0",
+    "@playwright/test": "^1.65.0",
+    "eslint": "^10.14.0",
+    "supabase": "3.1.0",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "@nuxt/eslint": "^1.17.0",
-    "eslint": "^10.14.0",
-    "vue-tsc": "^3.3.14",
-    "@playwright/test": "^1.65.0",
     "vitest": "^5.1.0",
+    "vue-tsc": "^3.3.14",
     "yaml": "^2.8.2"
   }
 }
