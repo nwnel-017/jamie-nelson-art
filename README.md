@@ -186,7 +186,7 @@ real. For a real image-capable JSON model, use `NUXT_AI_PROVIDER=chat-completion
 timeout is 90 seconds. Missing live-model configuration does not fall back to test
 output. Both agents accept the provider-neutral `AiModel` interface.
 
-Run `npm run test:handoff` for isolated tests, and `npm run test:drafts:integration`
+Run `npm test` for isolated tests, and `npm run test:integration`
 for the real local Supabase transaction checks (requires `.env` and applied
 migrations). Integration checks create temporary records and clean them up.
 

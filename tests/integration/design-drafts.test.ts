@@ -1,25 +1,27 @@
-import { test } from "node:test";
+import { test, afterEach, vi } from "vitest";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../types/supabase/database";
-import type { AiModel } from "../server/utils/agent/ai-model";
-import type { DesignRequest } from "../server/utils/agent/design-request";
-import { createTestModel } from "../server/utils/agent/test-model";
-import { initialDraftAnalysis } from "../server/utils/agent/draft-analysis";
-import { clarifyDesignRequest } from "../server/services/clarify-requirements.service";
+import type { Database } from "../../types/supabase/database";
+import type { AiModel } from "../../server/utils/agent/ai-model";
+import type { DesignRequest } from "../../server/utils/agent/design-request";
+import { createTestModel } from "../../server/utils/agent/test-model";
+import { initialDraftAnalysis } from "../../server/utils/agent/draft-analysis";
+import { clarifyDesignRequest } from "../../server/services/clarify-requirements.service";
 import {
   reserveAnalysis,
   finishAnalysis,
   getRequestWithDraft,
-} from "../server/services/design-drafts.service";
-import { VerificationAgent } from "../server/utils/agent/verification-agent";
-import { HandoffError } from "../server/utils/agent/errors";
-import { submissionHash } from "../server/utils/agent/submission-hash";
+} from "../../server/services/design-drafts.service";
+import { VerificationAgent } from "../../server/utils/agent/verification-agent";
+import { HandoffError } from "../../server/utils/agent/errors";
+import { submissionHash } from "../../server/utils/agent/submission-hash";
 import {
   uploadDesignImage,
   deleteDesignImage,
-} from "../server/services/website-designs-storage.service";
+} from "../../server/services/website-designs-storage.service";
+
+afterEach(() => vi.restoreAllMocks());
 
 test("design images upload to real local storage and are publicly readable", async () => {
   assert.ok(
@@ -47,7 +49,7 @@ test("design images upload to real local storage and are publicly readable", asy
   }
 });
 
-// Explicit opt-in script: npm run test:drafts:integration (loads local .env).
+// Explicit opt-in script: npm run test:integration (loads local .env).
 test("real draft transactions enforce versions, readiness, concurrency, limits and idempotency", async () => {
   assert.ok(
     ["127.0.0.1", "localhost"].includes(
@@ -369,7 +371,7 @@ test("real draft transactions enforce versions, readiness, concurrency, limits a
   }
 });
 
-test("initial POST retries are idempotent and concurrent calls cannot double-analyze", async (t) => {
+test("initial POST retries are idempotent and concurrent calls cannot double-analyze", async () => {
   assert.ok(
     ["127.0.0.1", "localhost"].includes(
       new URL(process.env.SUPABASE_URL!).hostname,
@@ -377,7 +379,7 @@ test("initial POST retries are idempotent and concurrent calls cannot double-ana
     "Only local Supabase may be used",
   );
   const { gatherRequirements } =
-    await import("../server/services/gather-requirements.service");
+    await import("../../server/services/gather-requirements.service");
   const client = createClient<Database>(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -416,12 +418,12 @@ test("initial POST retries are idempotent and concurrent calls cannot double-ana
     file: {},
   };
   const storage = client.storage.from("website_designs");
-  t.mock.method(client.storage, "from", () => storage);
-  t.mock.method(storage, "upload", async () => {
+  vi.spyOn(client.storage, "from").mockImplementation(() => storage);
+  vi.spyOn(storage, "upload").mockImplementation(async () => {
     uploads++;
     return { data: { path: "test.png" }, error: null };
   });
-  t.mock.method(storage, "remove", async () => ({ data: [], error: null }));
+  vi.spyOn(storage, "remove").mockImplementation(async () => ({ data: [], error: null }));
   const deps = {
     model: {
       generate: async () => {

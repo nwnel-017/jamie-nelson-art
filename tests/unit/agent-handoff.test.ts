@@ -1,13 +1,13 @@
-import { canUseLocalCanvaAccess } from "../server/utils/agent/local-access";
-import { createVerificationModel } from "../server/utils/agent/model-factory";
+import { canUseLocalCanvaAccess } from "../../server/utils/agent/local-access";
+import { createVerificationModel } from "../../server/utils/agent/model-factory";
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../types/supabase/database";
+import type { Database } from "../../types/supabase/database";
 import {
   uploadDesignImage,
   deleteDesignImage,
-} from "../server/services/website-designs-storage.service";
-import { gatherRequirements } from "../server/services/gather-requirements.service";
-import { test, before, after } from "node:test";
+} from "../../server/services/website-designs-storage.service";
+import { gatherRequirements } from "../../server/services/gather-requirements.service";
+import { test, beforeAll, afterAll, afterEach, vi } from "vitest";
 import assert from "node:assert/strict";
 import { createServer, request as httpRequest, type Server } from "node:http";
 import { generateKeyPairSync, sign } from "node:crypto";
@@ -23,13 +23,13 @@ import {
   bearerToken,
   verifyDesign,
   type CanvaVerifiers,
-} from "../server/utils/agent/canva";
-import { HandoffError, agentRequestError } from "../server/utils/agent/errors";
+} from "../../server/utils/agent/canva";
+import { HandoffError, agentRequestError } from "../../server/utils/agent/errors";
 import {
   parseHandoff,
   validateInstructions,
   MAX_IMAGE_BYTES,
-} from "../server/utils/agent/handoff/validation";
+} from "../../server/utils/agent/handoff/validation";
 import {
   createPublicLookup,
   isPublicAddress,
@@ -37,12 +37,12 @@ import {
   readImageBytes,
   validatePng,
   downloadImage,
-} from "../server/utils/agent/handoff/image";
-import { validateAgentHandoff, validateGatherRequirements } from "../server/utils/agent/handoff/submission-validation";
-import { requireCanvaUser } from "../server/utils/auth/requireCanvaUser";
-import { readAgentBody } from "../server/utils/agent/read-body";
-import { designRequestResponse } from "../server/utils/agent/design-request";
-import { getCanvaVerifiers } from "../server/utils/agent/canva";
+} from "../../server/utils/agent/handoff/image";
+import { validateAgentHandoff, validateGatherRequirements } from "../../server/utils/agent/handoff/submission-validation";
+import { requireCanvaUser } from "../../server/utils/auth/requireCanvaUser";
+import { readAgentBody } from "../../server/utils/agent/read-body";
+import { designRequestResponse } from "../../server/utils/agent/design-request";
+import { getCanvaVerifiers } from "../../server/utils/agent/canva";
 
 const appId = "test-app";
 const { privateKey, publicKey } = generateKeyPairSync("rsa", {
@@ -65,6 +65,8 @@ function token(claims: Record<string, unknown>, forged = false) {
 }
 const userToken = token({ userId: "owner", brandId: "team" });
 const designToken = token({ designId: "design" });
+afterEach(() => vi.restoreAllMocks());
+
 let jwks: Server;
 let verifier: CanvaVerifiers;
 let png: Buffer;
@@ -79,7 +81,7 @@ function close(server: Server) {
     server.close((error) => (error ? reject(error) : resolve())),
   );
 }
-before(async () => {
+beforeAll(async () => {
   const key = {
     ...publicKey.export({ format: "jwk" }),
     kid: "test-key",
@@ -101,7 +103,7 @@ before(async () => {
     .png()
     .toBuffer();
 });
-after(async () => {
+afterAll(async () => {
   await close(jwks);
 });
 function payload() {
@@ -510,7 +512,7 @@ function gatherInput() {
   };
 }
 
-test("HTTP handler returns the saved design request only after auth, validation and persistence", async (t) => {
+test("HTTP handler returns the saved design request only after auth, validation and persistence", async () => {
   let agentCalls = 0;
   const { client } = gatherDatabase();
   const app = createApp();
@@ -519,7 +521,7 @@ test("HTTP handler returns the saved design request only after auth, validation 
     canvaAllowedUserIds: "owner",
     canvaExportHosts: "export-download.canva.com",
   };
-  t.mock.method(getCanvaVerifiers(appId).user, "verify", (token: string) =>
+  vi.spyOn(getCanvaVerifiers(appId).user, "verify").mockImplementation((token: string) =>
     verifier.user.verify(token),
   );
   const submissionPayload = () => ({
@@ -669,7 +671,7 @@ test("maps network timeouts and failures to safe gateway errors", async () => {
 
 test("gathering uploads and reserves before analysis, saves a draft, and replays without another model call", async () => {
   const { VERIFICATION_SYSTEM_PROMPT } =
-    await import("../server/utils/agent/prompts/verification");
+    await import("../../server/utils/agent/prompts/verification");
   const { client, calls } = gatherDatabase();
   const handoff = gatherInput();
   const options = {
@@ -677,7 +679,7 @@ test("gathering uploads and reserves before analysis, saves a draft, and replays
     model: {
       generate: async (
         input: Parameters<
-          import("../server/utils/agent/ai-model").AiModel["generate"]
+          import("../../server/utils/agent/ai-model").AiModel["generate"]
         >[0],
       ) => {
         calls.push("generate");

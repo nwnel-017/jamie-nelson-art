@@ -1,11 +1,11 @@
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../types/supabase/database";
-import { clarifyDesignRequest } from "../server/services/clarify-requirements.service";
-import { analysisLimit } from "../server/utils/agent/analysis-config";
-import { CLARIFICATION_SYSTEM_PROMPT } from "../server/utils/agent/prompts/clarification";
-import { HandoffError } from "../server/utils/agent/errors";
+import type { Database } from "../../types/supabase/database";
+import { clarifyDesignRequest } from "../../server/services/clarify-requirements.service";
+import { analysisLimit } from "../../server/utils/agent/analysis-config";
+import { CLARIFICATION_SYSTEM_PROMPT } from "../../server/utils/agent/prompts/clarification";
+import { HandoffError } from "../../server/utils/agent/errors";
 
 const id = "12345678-1234-4234-8234-123456789abc";
 const questionId = "12345678-1234-4234-8234-123456789abd";

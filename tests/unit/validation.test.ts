@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { validateOrderStatus, validateUUID } from "../utils/validation/other";
-import { validateShippingAddress } from "../utils/validation/stripe";
+import { validateOrderStatus, validateUUID } from "../../utils/validation/other";
+import { validateShippingAddress } from "../../utils/validation/stripe";
 
 describe("core input validation", () => {
   it("accepts known order statuses and rejects arbitrary values", () => {

@@ -5,17 +5,17 @@ import { once } from "node:events";
 import { createClient } from "@supabase/supabase-js";
 import { createApp, createRouter, setHeader, toNodeListener } from "h3";
 import sharp from "sharp";
-import type { Database } from "../types/supabase/database";
-import type { DesignRequest } from "../server/utils/agent/design-request";
+import type { Database } from "../../types/supabase/database";
+import type { DesignRequest } from "../../server/utils/agent/design-request";
 import { serverSupabaseServiceRole } from "#supabase/server";
-import { getCanvaVerifiers } from "../server/utils/agent/canva";
-import { downloadImage } from "../server/utils/agent/handoff/image";
-import gather from "../server/api/agent/gather-requirements/index.post";
-import clarify from "../server/api/agent/clarify-requirements/[id].post";
+import { getCanvaVerifiers } from "../../server/utils/agent/canva";
+import { downloadImage } from "../../server/utils/agent/handoff/image";
+import gather from "../../server/api/agent/gather-requirements/index.post";
+import clarify from "../../server/api/agent/clarify-requirements/[id].post";
 
 vi.mock("#supabase/server", () => ({ serverSupabaseServiceRole: vi.fn() }));
-vi.mock("../server/utils/agent/handoff/image", async (original) => ({
-  ...(await original<typeof import("../server/utils/agent/handoff/image")>()),
+vi.mock("../../server/utils/agent/handoff/image", async (original) => ({
+  ...(await original<typeof import("../../server/utils/agent/handoff/image")>()),
   downloadImage: vi.fn(),
 }));
 
