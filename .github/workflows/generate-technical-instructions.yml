@@ -34,6 +34,7 @@ env:
   TECHNICAL_JOB_ID: ${{ inputs.job_id }}
 
 jobs:
+  # Claim one attempt and retrieve the approved design request.
   claim:
     runs-on: ubuntu-latest
     permissions:
@@ -61,6 +62,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  # Generate technical instructions from the approved request and source code.
   plan:
     needs: claim
     if: needs.claim.outputs.claimed == 'true' && github.run_attempt == 1
@@ -115,6 +117,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  # Apply the instructions in an isolated checkout and export a patch.
   implement:
     needs: [claim, plan]
     if: needs.plan.result == 'success' && needs.claim.outputs.claimed == 'true' && github.run_attempt == 1
@@ -187,6 +190,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  # Validate the patch, push the design branch, and open or update its PR.
   publish:
     needs: [claim, implement]
     if: needs.implement.result == 'success' && needs.claim.outputs.claimed == 'true' && github.run_attempt == 1
@@ -247,6 +251,7 @@ jobs:
             pr_number=$(gh pr list --base "$BASE_BRANCH" --head "$branch" --json number --jq '.[0].number')
           fi
 
+  # Save the planning result to the backend, including planning failures.
   report:
     needs: [claim, plan]
     if: always() && needs.claim.outputs.claimed == 'true' && github.run_attempt == 1
