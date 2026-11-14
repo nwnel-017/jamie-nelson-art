@@ -215,3 +215,44 @@ export async function requestDesignAnalysis(
   }
   return parseDesignRequestResponse(await response.json());
 }
+
+export async function approveDesignRequest(
+  id: string,
+  backendHost: string,
+): Promise<void> {
+  if (!isRequestId(id)) throw new Error("Invalid design request ID.");
+  const token = await auth.getCanvaUserToken();
+  const response = await fetch(
+    `${backendHost.replace(/\/$/, "")}/api/agent/execute/${id}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  if (!response.ok) {
+    let message = "Could not approve this request. Please try again.";
+    try {
+      const error = await response.json();
+      if (typeof error.statusMessage === "string")
+        message = error.statusMessage;
+    } catch {
+      /* Use fallback. */
+    }
+    throw new Error(message);
+  }
+  const result = await response.json();
+  if (
+    !result ||
+    result.success !== true ||
+    result.requestId !== id ||
+    !isRequestId(result.jobId) ||
+    !Number.isInteger(result.draft_version) ||
+    result.draft_version < 1 ||
+    !["queued", "running", "completed"].includes(result.status)
+  )
+    throw new Error(
+      "The portfolio did not confirm that technical planning was queued.",
+    );
+}

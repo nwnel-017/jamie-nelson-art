@@ -30,6 +30,7 @@ export interface PublishSettings {
   instructions: string;
   designRequestId?: string;
   designId?: string;
+  approvedRequestId?: string;
 }
 
 export function isValidInstructions(instructions: string): boolean {
@@ -67,7 +68,12 @@ export function parsePublishSettings(
       (typeof designId !== "string" || !designId || designId.length > 256)
     )
       return undefined;
+    const approvedRequestId =
+      "approvedRequestId" in value ? value.approvedRequestId : undefined;
+    if (approvedRequestId !== undefined && !isRequestId(approvedRequestId))
+      return undefined;
     return {
+      ...(approvedRequestId ? { approvedRequestId } : {}),
       ...(designId ? { designId } : {}),
       instructions: value.instructions,
       changeOptions,

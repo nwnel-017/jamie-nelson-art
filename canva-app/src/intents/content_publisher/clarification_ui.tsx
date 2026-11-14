@@ -12,6 +12,7 @@ import { useIntl } from "react-intl";
 import {
   DesignAnalysisError,
   requestDesignAnalysis,
+  approveDesignRequest,
   type DesignRequest,
 } from "./design_request";
 
@@ -20,11 +21,13 @@ export function ClarificationUi({
   backendHost,
   onSubmitted,
   storageKey,
+  onApproved = () => {},
 }: {
   request: DesignRequest;
   backendHost: string;
   onSubmitted: (request: DesignRequest) => void;
   storageKey?: string;
+  onApproved?: () => void;
 }) {
   const intl = useIntl();
   const [index, setIndex] = useState(0);
@@ -60,6 +63,22 @@ export function ClarificationUi({
           submissionId: submissionId.current,
         },
       });
+  };
+  const approve = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await approveDesignRequest(request.id, backendHost);
+      onApproved();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Could not approve this request.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
   const questions = request.clarifying_questions;
   const last = index === questions.length - 1;
@@ -146,7 +165,7 @@ export function ClarificationUi({
         <Text>
           {intl.formatMessage({
             defaultMessage:
-              "Your requirements are understood. Review the instructions below.",
+              "Thank you for answering the questions. Please review the instructions",
             description: "Approval screen introduction",
           })}
         </Text>
@@ -155,29 +174,29 @@ export function ClarificationUi({
       )}
       {ready && (
         <>
-          <Text variant="bold">
-            {intl.formatMessage({
-              defaultMessage: "Design analysis",
-              description: "Analysis heading",
-            })}
-          </Text>
-          <ImageCard
-            thumbnailUrl={request.design_image}
-            alt={intl.formatMessage({
-              defaultMessage: "Your exported design",
-              description: "Exported design image description",
-            })}
-          />
-          <Text>{request.instructions}</Text>
-          <Text variant="bold">
-            {intl.formatMessage({
-              defaultMessage: "Requirements",
-              description: "Requirements heading",
-            })}
-          </Text>
-          {request.requirements.map((item, i) => (
-            <Text key={i}>{item}</Text>
-          ))}
+      <Text variant="bold">
+        {intl.formatMessage({
+          defaultMessage: "Design analysis",
+          description: "Analysis heading",
+        })}
+      </Text>
+      <ImageCard
+        thumbnailUrl={request.design_image}
+        alt={intl.formatMessage({
+          defaultMessage: "Your exported design",
+          description: "Exported design image description",
+        })}
+      />
+      <Text>{request.instructions}</Text>
+      <Text variant="bold">
+        {intl.formatMessage({
+          defaultMessage: "Requirements",
+          description: "Requirements heading",
+        })}
+      </Text>
+      {request.requirements.map((item, i) => (
+        <Text key={i}>{item}</Text>
+      ))}
         </>
       )}
       {ready ? (
@@ -196,6 +215,17 @@ export function ClarificationUi({
             </Rows>
           ))}
           {error && <Text tone="critical">{error}</Text>}
+          <Button
+            variant="primary"
+            loading={saving}
+            disabled={saving}
+            onClick={() => void approve()}
+          >
+            {intl.formatMessage({
+              defaultMessage: "Approve",
+              description: "Approve the final requirements",
+            })}
+          </Button>
         </>
       ) : (
         <>
