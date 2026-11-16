@@ -99,4 +99,10 @@ This project was designed as a real-world artwork portfolio for a working artist
 
 ## What I’m Building Now
 
-I’m working on an experimental feature that lets the artist send a Canva design and instructions to an AI agent. The agent helps clarify the requested changes, prepares a plan for approval, and then works on the website changes and opens a pull request. This feature is still being worked on.
+I’m building an experimental feature to help the artist turn Canva designs into updates to the portfolio website. The goal is to let the artist describe and show the changes they want, with an AI agent handling the coding work. This feature is still being worked on.
+
+At a high level, the design has three parts:
+
+- **Design in Canva:** The artist sends a design and a short description of what they want to change through a custom Canva app.
+- **Review the plan:** The backend analyzes the design, asks clarifying questions, and prepares a plan for the artist to approve.
+- **Prepare the website update:** After approval, an AI agent works in an isolated environment to make the changes and open a pull request for review before anything is merged into the website.
