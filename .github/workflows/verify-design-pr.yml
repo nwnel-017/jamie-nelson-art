@@ -25,7 +25,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
+  pr:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -34,7 +34,6 @@ jobs:
       head_sha: ${{ steps.pr.outputs.head_sha }}
       head_ref: ${{ steps.pr.outputs.head_ref }}
       base_ref: ${{ steps.pr.outputs.base_ref }}
-      passed: ${{ steps.outcome.outputs.passed }}
     steps:
       - name: Validate request and resolve current PR head
         id: pr
@@ -53,47 +52,94 @@ jobs:
           echo "head_ref=$ref" >> "$GITHUB_OUTPUT"
           echo "head_sha=$sha" >> "$GITHUB_OUTPUT"
           echo "base_ref=$base" >> "$GITHUB_OUTPUT"
+
+  ci:
+    needs: pr
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+    with:
+      sha: ${{ needs.pr.outputs.head_sha }}
+
+  canva:
+    needs: pr
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          ref: ${{ steps.pr.outputs.head_sha }}
+          ref: ${{ needs.pr.outputs.head_sha }}
           persist-credentials: false
           submodules: false
           lfs: false
-      - name: Set up Node.js 24
+      - name: Set up Node.js 22
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 24
+          node-version: 22
           cache: npm
           cache-dependency-path: |
             package-lock.json
             canva-app/package-lock.json
-      - name: Run repository checks without model credentials
+      - name: Run Canva checks without model credentials
         id: ci
-        continue-on-error: true
         run: |
           set -euo pipefail
           {
-            npm ci
-            npm test
-            npm run build
             npm ci --prefix canva-app
             npm --prefix canva-app test -- --runInBand
             npm --prefix canva-app run lint:check
             npm --prefix canva-app run build
-          } 2>&1 | tee "$RUNNER_TEMP/verification-ci.log"
-      - name: Record check outcome
+          } 2>&1 | tee "$RUNNER_TEMP/ci-canva.log"
+      - name: Upload Canva output
         if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verification-logs-canva
+          path: ${{ runner.temp }}/ci-canva.log
+          if-no-files-found: warn
+          retention-days: 1
+
+  checks:
+    needs: [pr, ci, canva]
+    if: always() && needs.pr.result == 'success'
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      head_sha: ${{ needs.pr.outputs.head_sha }}
+      head_ref: ${{ needs.pr.outputs.head_ref }}
+      base_ref: ${{ needs.pr.outputs.base_ref }}
+      passed: ${{ steps.outcome.outputs.passed }}
+    steps:
+      - name: Download check logs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: verification-logs-*
+          path: ${{ runner.temp }}/check-logs
+          merge-multiple: true
+      - name: Record check outcome
         id: outcome
         env:
-          CI_OUTCOME: ${{ steps.ci.outcome }}
-        run: echo "passed=$([[ "$CI_OUTCOME" == success ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          CI_RESULT: ${{ needs.ci.result }}
+          CANVA_RESULT: ${{ needs.canva.result }}
+        run: |
+          passed=false
+          if [[ "$CI_RESULT" == success && "$CANVA_RESULT" == success ]]; then
+            passed=true
+          fi
+          echo "passed=$passed" >> "$GITHUB_OUTPUT"
+          echo "CI: $CI_RESULT; Canva: $CANVA_RESULT" > "$RUNNER_TEMP/verification-ci.log"
+          for log in "$RUNNER_TEMP"/check-logs/*.log; do
+            [[ -f "$log" ]] || continue
+            printf '\n--- %s ---\n' "$(basename "$log")" >> "$RUNNER_TEMP/verification-ci.log"
+            cat "$log" >> "$RUNNER_TEMP/verification-ci.log"
+          done
       - name: Upload CI output
-        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: design-ci-${{ github.run_id }}
           path: ${{ runner.temp }}/verification-ci.log
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 1
 
   review:
@@ -277,8 +323,8 @@ jobs:
             -f pr_number="$PR_NUMBER" -f design_id="$DESIGN_ID" -f repair_count="$((REPAIR_COUNT + 1))"
 
   human-attention:
-    needs: [checks, review, repair, publish-repair]
-    if: always() && (needs.checks.result == 'failure' || needs.review.result == 'failure' || needs.repair.result == 'failure' || needs.publish-repair.result == 'failure' || (inputs.repair_count >= 2 && (needs.checks.outputs.passed != 'true' || needs.review.outputs.findings != '0')))
+    needs: [pr, checks, review, repair, publish-repair]
+    if: always() && (needs.pr.result != 'success' || needs.checks.result == 'failure' || needs.review.result == 'failure' || needs.repair.result == 'failure' || needs.publish-repair.result == 'failure' || (inputs.repair_count >= 2 && (needs.checks.outputs.passed != 'true' || needs.review.outputs.findings != '0')))
     runs-on: ubuntu-latest
     permissions: {}
     steps:
