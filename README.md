@@ -97,3 +97,6 @@ The project expects environment variables for:
 
 This project was designed as a real-world artwork portfolio for a working artist, with a strong emphasis on presentation, maintainability, and direct online sales. It reflects a full-stack TypeScript approach using Nuxt, Nitro, Supabase, PostgreSQL, and Stripe to deliver both the gallery experience and the supporting commerce workflow.
 
+## What I’m Building Now
+
+I’m working on an experimental feature that lets the artist send a Canva design and instructions to an AI agent. The agent helps clarify the requested changes, prepares a plan for approval, and then works on the website changes and opens a pull request. This feature is still being worked on.
