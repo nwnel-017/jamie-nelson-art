@@ -1,11 +1,11 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { readFileSync, mkdtempSync, writeFileSync, chmodSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { parse } from 'yaml';
-const workflow = parse(readFileSync(new URL('../.github/workflows/verify-design-pr.yml', import.meta.url), 'utf8'));
+const workflow = parse(readFileSync(new URL('../../.github/workflows/verify-design-pr.yml', import.meta.url), 'utf8'));
 const jobs = workflow.jobs;
 const needs = { checks: { result: 'success', outputs: { passed: 'true' } }, review: { result: 'success', outputs: { findings: '0' } }, repair: { result: 'skipped' }, 'publish-repair': { result: 'skipped' } };
 function condition(expression, state = needs, count = 0) {
@@ -16,8 +16,7 @@ const state = changes => Object.fromEntries(Object.entries(needs).map(([key, val
 
 test('verification checks are mandatory and model execution is isolated from publishing', () => {
   const ci = jobs.checks.steps.find(step => step.id === 'ci').run;
-  assert.match(ci, /npm run test:handoff\n/);
-  assert.match(ci, /npm run test:planning\n/);
+  assert.match(ci, /npm test\n/);
   assert.match(ci, /npm --prefix canva-app run build/);
   assert.equal(ci.includes('--if-present'), false);
   assert.equal(ci.includes('if [['), false);
@@ -59,7 +58,7 @@ test('verification publishes pass/fail status on the exact reviewed SHA', t => {
   const step = jobs['verification-status'].steps[0];
   assert.equal(step.env.HEAD_SHA, '${{ needs.checks.outputs.head_sha }}');
   const dir = mkdtempSync(join(tmpdir(), 'verification-status-'));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  t.onTestFinished(() => rmSync(dir, { recursive: true, force: true }));
   const output = join(dir, 'args');
   writeFileSync(join(dir, 'gh'), '#!/bin/sh\nprintf "%s\\n" "$@" > "$TEST_ARGS"\n');
   chmodSync(join(dir, 'gh'), 0o755);
@@ -74,11 +73,11 @@ test('verification publishes pass/fail status on the exact reviewed SHA', t => {
 
 
 test('publication dispatches verification from the trusted workflow branch rather than the source branch', t => {
-  const generation = parse(readFileSync(new URL('../.github/workflows/generate-technical-instructions.yml', import.meta.url), 'utf8'));
+  const generation = parse(readFileSync(new URL('../../.github/workflows/generate-technical-instructions.yml', import.meta.url), 'utf8'));
   const step = generation.jobs.publish.steps.find(step => step.name === 'Open pull request');
   assert.equal(step.env.WORKFLOW_REF, '${{ github.ref_name }}');
   const dir = mkdtempSync(join(tmpdir(), 'verification-dispatch-'));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  t.onTestFinished(() => rmSync(dir, { recursive: true, force: true }));
   const output = join(dir, 'args');
   writeFileSync(join(dir, 'gh'), '#!/bin/sh\nif [ "$1" = pr ] && [ "$2" = list ]; then echo 17; fi\nif [ "$1" = workflow ]; then printf "%s\\n" "$@" > "$TEST_ARGS"; fi\n');
   writeFileSync(join(dir, 'git'), '#!/bin/sh\necho aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n');

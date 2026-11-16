@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -11,12 +11,12 @@ import {
   reportResult,
   workerContext,
   validateClaim,
-} from "../scripts/technical-design-job-worker.mjs";
+} from "../../scripts/technical-design-job-worker.mjs";
 
 test("technical instructions workflow preserves dispatch, isolation, and reporting invariants", () => {
   const workflow = parse(
     readFileSync(
-      new URL("../.github/workflows/generate-technical-instructions.yml", import.meta.url),
+      new URL("../../.github/workflows/generate-technical-instructions.yml", import.meta.url),
       "utf8",
     ),
   );
@@ -101,7 +101,7 @@ const input = {
 };
 async function context(t) {
   const directory = await mkdtemp(join(tmpdir(), "technical-job-worker-"));
-  t.after(() => rm(directory, { recursive: true, force: true }));
+  t.onTestFinished(() => rm(directory, { recursive: true, force: true }));
   return {
     TECHNICAL_JOBS_BACKEND_URL: "https://portfolio.example",
     TECHNICAL_JOB_ID: jobId,
@@ -112,7 +112,7 @@ async function context(t) {
       "https://token.actions.githubusercontent.com/identity?api-version=2",
     ACTIONS_ID_TOKEN_REQUEST_TOKEN: "request-token",
     TECHNICAL_JOBS_SOURCE_DIRECTORY: join(directory, "source"),
-    TECHNICAL_JOBS_PROMPT_FILE: new URL("../server/utils/agent/prompts/technical-instructions.ts", import.meta.url).pathname,
+    TECHNICAL_JOBS_PROMPT_FILE: new URL("../../server/utils/agent/prompts/technical-instructions.ts", import.meta.url).pathname,
   };
 }
 

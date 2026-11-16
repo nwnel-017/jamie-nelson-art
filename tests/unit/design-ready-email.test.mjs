@@ -1,6 +1,6 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import { resolvePreviewUrl, sendDesignReadyEmail } from '../scripts/send-design-ready-email.mjs';
+import { resolvePreviewUrl, sendDesignReadyEmail } from '../../scripts/send-design-ready-email.mjs';
 const sha = 'a'.repeat(40);
 const env = { RESEND_API_KEY: 'key', RESEND_FROM_EMAIL: 'Portfolio <updates@example.com>', ADMIN_EMAIL: 'delivered@resend.dev', DESIGN_PR_NUMBER: '12', DESIGN_HEAD_SHA: sha, DESIGN_PR_URL: 'https://github.com/owner/repo/pull/12', GITHUB_REPOSITORY: 'owner/repo', GH_TOKEN: 'github-token' };
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status });

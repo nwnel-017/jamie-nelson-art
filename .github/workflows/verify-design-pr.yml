@@ -74,9 +74,7 @@ jobs:
           set -euo pipefail
           {
             npm ci
-            npm run test:handoff
-            npm run test:planning
-            npm run test:verification
+            npm test
             npm run build
             npm ci --prefix canva-app
             npm --prefix canva-app test -- --runInBand

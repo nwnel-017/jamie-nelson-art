@@ -1,20 +1,20 @@
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { generateKeyPair, exportJWK, createLocalJWKSet, SignJWT } from "jose";
-import { HandoffError } from "../server/utils/agent/errors";
+import { HandoffError } from "../../server/utils/agent/errors";
 import {
   readPlanningConfig,
   resolvePlanningCommit,
   dispatchPlanningWorkflow,
   type PlanningConfig,
-} from "../server/utils/agent/planning/github-planning";
-import { parseTechnicalInstructions } from "../server/utils/agent/planning/technical-instructions";
-import { verifyGitHubWorkerToken } from "../server/utils/auth/requireGitHubWorker";
+} from "../../server/utils/agent/planning/github-planning";
+import { parseTechnicalInstructions } from "../../server/utils/agent/planning/technical-instructions";
+import { verifyGitHubWorkerToken } from "../../server/utils/auth/requireGitHubWorker";
 import {
   verifyPlanningWebhook,
   planningRunFromWebhook,
-} from "../server/utils/agent/planning/github-planning-webhook";
+} from "../../server/utils/agent/planning/github-planning-webhook";
 
 const config: PlanningConfig = {
   token: "test-token",

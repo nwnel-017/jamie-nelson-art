@@ -2,8 +2,19 @@
 -- Transaction mode: transactional
 -- Boundary reason: default
 
-CREATE ROLE supabase_privileged_role;
-GRANT supabase_privileged_role TO postgres;
+-- Allow baseline replay when the role already exists.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_roles WHERE rolname = 'supabase_privileged_role'
+  ) THEN
+    CREATE ROLE supabase_privileged_role;
+  END IF;
+  IF NOT pg_has_role('postgres', 'supabase_privileged_role', 'MEMBER') THEN
+    GRANT supabase_privileged_role TO postgres;
+  END IF;
+END
+$$;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT DELETE, INSERT, SELECT, UPDATE ON TABLES TO anon;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT, USAGE ON SEQUENCES TO anon;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON ROUTINES TO anon;

@@ -31,6 +31,14 @@ export default defineNuxtConfig({
   image: {
     domains: process.env.SUPABASE_DOMAIN ? [process.env.SUPABASE_DOMAIN] : [],
   },
+  nitro: {
+    externals: {
+      // Sharp loads libvips dynamically, so include its binary in the server bundle.
+      traceInclude: [
+        `@img/sharp-libvips-${process.platform}-${process.arch}/binary`,
+      ],
+    },
+  },
   lottie: {
     componentName: "Lottie", // Optional: Customize the component name
     lottieFolder: "/assets/lottie", // Optional: Customize the Lottie folder path
