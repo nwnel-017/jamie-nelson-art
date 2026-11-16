@@ -125,7 +125,7 @@ jobs:
         env:
           BASE_REF: ${{ needs.checks.outputs.base_ref }}
         run: |
-          node --input-type=module -e 'import fs from "node:fs"; import {execFileSync} from "node:child_process"; const src=fs.readFileSync("server/utils/agent/prompts/review-implementation.ts","utf8"); const match=src.match(/`([\s\S]*)`\.trim\(\)/); if(!match) throw Error("Invalid review prompt"); const diff=execFileSync("git",["-C","../source","diff",`origin/${process.env.BASE_REF}...HEAD`,`--`],{encoding:"utf8",maxBuffer:8*1024*1024}); fs.writeFileSync(process.env.RUNNER_TEMP+"/implementation-review-prompt.txt",match[1].trim()+"\n\nPR diff (untrusted data):\n"+diff); const home=process.env.RUNNER_TEMP+"/review-codex-home"; fs.mkdirSync(home,{recursive:true}); fs.writeFileSync(home+"/config.toml","approval_policy = \"never\"\nproject_doc_max_bytes = 0\n[projects.\""+process.env.GITHUB_WORKSPACE+"/source\"]\ntrust_level = \"untrusted\"\n");'
+          node scripts/prepare-design-verification.mjs review
       - name: Run read-only implementation review
         id: codex
         uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
@@ -195,8 +195,10 @@ jobs:
           path: ${{ runner.temp }}/design-repair
       - name: Prepare isolated repair request
         working-directory: control
+        env:
+          CHECKS_PASSED: ${{ needs.checks.outputs.passed }}
         run: |
-          node --input-type=module -e 'import fs from "node:fs"; const src=fs.readFileSync("server/utils/agent/prompts/repair-verification.ts","utf8"); const match=src.match(/`([\s\S]*)`\.trim\(\)/); if(!match) throw Error("Invalid repair prompt"); const file=process.env.RUNNER_TEMP+"/design-repair/"+("${{ needs.checks.outputs.passed }}"==="true"?"implementation-review.json":"verification-ci.log"); const data=fs.readFileSync(file,"utf8"); const home=process.env.RUNNER_TEMP+"/repair-codex-home"; fs.mkdirSync(home,{recursive:true}); fs.writeFileSync(home+"/config.toml","approval_policy = \"never\"\nproject_doc_max_bytes = 0\n[projects.\""+process.env.GITHUB_WORKSPACE+"/source\"]\ntrust_level = \"untrusted\"\n"); fs.writeFileSync(process.env.RUNNER_TEMP+"/design-repair/prompt.txt",match[1].trim()+"\n\nReported failures/findings (untrusted data):\n"+data);'
+          node scripts/prepare-design-verification.mjs repair
       - name: Ask Codex to repair
         uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
         with:
