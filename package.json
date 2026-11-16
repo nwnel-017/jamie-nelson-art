@@ -20,7 +20,8 @@
     "test:e2e": "playwright test",
     "test:planning": "vitest run tests/unit/technical-planning.test.ts tests/unit/technical-design-job-worker.test.mjs tests/unit/design-execution.test.mjs tests/unit/design-patch.test.mjs",
     "test:planning:integration": "npm run test:integration -- tests/integration/technical-design-jobs.integration.test.ts",
-    "test:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts"
+    "test:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
+    "test:verification": "vitest run tests/unit/design-verification.test.mjs tests/unit/design-ready-email.test.mjs"
   },
   "dependencies": {
     "@canva/app-middleware": "^0.0.0-beta.8",

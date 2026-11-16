@@ -40,6 +40,8 @@ test("technical instructions workflow preserves dispatch, isolation, and reporti
   assert.deepEqual(workflow.jobs.implement.permissions, { contents: "read" });
   assert.deepEqual(workflow.jobs.publish.permissions, {
     contents: "write",
+    actions: "write",
+    statuses: "write",
     "pull-requests": "write",
   });
   assert.deepEqual(workflow.jobs.publish.needs, ["claim", "implement"]);
