@@ -1,12 +1,5 @@
 name: CI
 on:
-  workflow_call:
-    inputs:
-      sha:
-        description: Exact commit to verify
-        type: string
-        required: false
-        default: ''
   pull_request:
   push:
     branches: [master]
@@ -17,30 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.sha || github.sha }}
-          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - name: Run application checks
-        run: |
-          set -euo pipefail
-          {
-            npm ci
-            npm run check
-            npm test
-            npm run build
-            npx playwright install --with-deps chromium
-            npm run test:e2e
-          } 2>&1 | tee "$RUNNER_TEMP/ci-test.log"
-      - uses: actions/upload-artifact@v4
-        if: always() && inputs.sha != ''
-        with:
-          name: verification-logs-test
-          path: ${{ runner.temp }}/ci-test.log
-          retention-days: 1
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -50,37 +29,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.sha || github.sha }}
-          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci 2>&1 | tee "$RUNNER_TEMP/ci-rls.log"
-        shell: bash --noprofile --norc -e -o pipefail {0}
+      - run: npm ci
       - uses: supabase/setup-cli@v3
-      - name: Start local database
-        run: |
-          set -euo pipefail
-          {
-            supabase start -x realtime,imgproxy,postgres-meta
-            supabase db reset
-          } 2>&1 | tee -a "$RUNNER_TEMP/ci-rls.log"
+      - run: supabase start -x realtime,imgproxy,postgres-meta
+      - run: supabase db reset
       - name: Test table policies and design workflow
         shell: bash
         run: |
-          set -euo pipefail
-          {
-            eval "$(supabase status -o env)"
-            TEST_SUPABASE_URL="$API_URL" TEST_SUPABASE_ANON_KEY="$ANON_KEY" TEST_SUPABASE_SERVICE_KEY="$SERVICE_ROLE_KEY" npm run test:rls
-            SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npm run test:integration
-          } 2>&1 | tee -a "$RUNNER_TEMP/ci-rls.log"
+          eval "$(supabase status -o env)"
+          TEST_SUPABASE_URL="$API_URL" TEST_SUPABASE_ANON_KEY="$ANON_KEY" TEST_SUPABASE_SERVICE_KEY="$SERVICE_ROLE_KEY" npm run test:rls
+          SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npm run test:integration
       - if: always()
         run: supabase stop --no-backup
-      - uses: actions/upload-artifact@v4
-        if: always() && inputs.sha != ''
-        with:
-          name: verification-logs-rls
-          path: ${{ runner.temp }}/ci-rls.log
-          retention-days: 1

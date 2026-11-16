@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { parse } from 'yaml';
 const workflow = parse(readFileSync(new URL('../../.github/workflows/verify-design-pr.yml', import.meta.url), 'utf8'));
 const jobs = workflow.jobs;
-const needs = { pr: { result: 'success' }, checks: { result: 'success', outputs: { passed: 'true' } }, review: { result: 'success', outputs: { findings: '0' } }, repair: { result: 'skipped' }, 'publish-repair': { result: 'skipped' } };
+const needs = { checks: { result: 'success', outputs: { passed: 'true' } }, review: { result: 'success', outputs: { findings: '0' } }, repair: { result: 'skipped' }, 'publish-repair': { result: 'skipped' } };
 function condition(expression, state = needs, count = 0) {
   const code = expression.replace(/always\(\)/g, 'true').replace(/inputs\.repair_count/g, String(count)).replace(/needs\.([\w-]+)\.(outputs\.\w+|result)/g, (_, name, path) => JSON.stringify(path.split('.').reduce((value, key) => value?.[key], state[name]) ?? ''));
   return Function(`return (${code});`)();
@@ -15,18 +15,11 @@ function condition(expression, state = needs, count = 0) {
 const state = changes => Object.fromEntries(Object.entries(needs).map(([key, value]) => [key, { ...value, ...changes[key], outputs: { ...value.outputs, ...changes[key]?.outputs } }]));
 
 test('verification checks are mandatory and model execution is isolated from publishing', () => {
-  const ci = parse(readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8'));
-  assert.ok(ci.on.workflow_call.inputs.sha);
-  assert.ok('pull_request' in ci.on);
-  assert.equal(jobs.ci.uses, './.github/workflows/ci.yml');
-  assert.equal(jobs.ci.with.sha, '${{ needs.pr.outputs.head_sha }}');
-  for (const job of Object.values(ci.jobs)) {
-    assert.equal(job.steps[0].with.ref, '${{ inputs.sha || github.sha }}');
-  }
-  const canva = jobs.canva.steps.find(step => step.id === 'ci').run;
-  assert.match(canva, /npm --prefix canva-app run build/);
-  assert.equal(canva.includes('--if-present'), false);
-  assert.deepEqual(jobs.checks.needs, ['pr', 'ci', 'canva']);
+  const ci = jobs.checks.steps.find(step => step.id === 'ci').run;
+  assert.match(ci, /npm test\n/);
+  assert.match(ci, /npm --prefix canva-app run build/);
+  assert.equal(ci.includes('--if-present'), false);
+  assert.equal(ci.includes('if [['), false);
   assert.deepEqual(jobs.review.permissions, { contents: 'read' });
   assert.deepEqual(jobs.repair.permissions, { contents: 'read' });
   assert.equal(jobs['notify-admin'].permissions.deployments, 'read');
@@ -143,32 +136,4 @@ test('preparation separates trusted instructions from review and repair data', t
     assert.ok(request.endsWith(report));
     assert.equal(request.includes('You are repairing'), false);
   }
-});
-
-
-test('check aggregation requires CI and Canva success and preserves failure logs', t => {
-  const directory = mkdtempSync(join(tmpdir(), 'verification-checks-'));
-  t.onTestFinished(() => rmSync(directory, { recursive: true, force: true }));
-  mkdirSync(join(directory, 'check-logs'));
-  writeFileSync(join(directory, 'check-logs/ci-test.log'), 'Build failure details');
-  const step = jobs.checks.steps.find(step => step.id === 'outcome');
-  const output = join(directory, 'output');
-  for (const [ci, canva, passed] of [
-    ['success', 'success', true],
-    ['failure', 'success', false],
-    ['success', 'failure', false],
-    ['cancelled', 'skipped', false],
-  ]) {
-    writeFileSync(output, '');
-    const result = spawnSync('bash', ['-e', '-o', 'pipefail', '-c', step.run], {
-      encoding: 'utf8',
-      env: { ...process.env, CI_RESULT: ci, CANVA_RESULT: canva, RUNNER_TEMP: directory, GITHUB_OUTPUT: output },
-    });
-    assert.equal(result.status, 0, result.stderr);
-    assert.equal(readFileSync(output, 'utf8').trim(), `passed=${passed}`);
-    const log = readFileSync(join(directory, 'verification-ci.log'), 'utf8');
-    assert.ok(log.includes(`CI: ${ci}; Canva: ${canva}`));
-    assert.ok(log.includes('Build failure details'));
-  }
-  assert.equal(condition(jobs['human-attention'].if, state({ pr: { result: 'failure' } })), true);
 });
