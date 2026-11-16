@@ -153,7 +153,14 @@ jobs:
 
   repair:
     needs: [checks, review]
-    if: always() && needs.checks.result == 'success' && (needs.checks.outputs.passed != 'true' || (needs.review.result == 'success' && needs.review.outputs.findings != '0')) && inputs.repair_count < 2
+    if: >-
+      always() &&
+      needs.checks.result == 'success' &&
+      inputs.repair_count < 2 &&
+      (
+        needs.checks.outputs.passed != 'true' ||
+        (needs.review.result == 'success' && needs.review.outputs.findings != '0')
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read

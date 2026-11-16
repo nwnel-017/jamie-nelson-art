@@ -15,6 +15,7 @@ function httpsUrl(value) {
   return url.toString();
 }
 
+// Find a successful preview deployment for the exact reviewed commit.
 export async function resolvePreviewUrl(env = process.env, request = fetch) {
   const repository = required(env, 'GITHUB_REPOSITORY');
   const sha = required(env, 'DESIGN_HEAD_SHA');
@@ -46,6 +47,7 @@ export async function resolvePreviewUrl(env = process.env, request = fetch) {
 
 const escapeHtml = value => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 
+// Send the preview and PR links, deduplicating retries by PR and commit.
 export async function sendDesignReadyEmail(env = process.env, request = fetch) {
   const apiKey = required(env, 'RESEND_API_KEY');
   const from = required(env, 'RESEND_FROM_EMAIL');
@@ -73,6 +75,7 @@ export async function sendDesignReadyEmail(env = process.env, request = fetch) {
   return result.id;
 }
 
+// Run the notification when called directly by the workflow.
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   console.log(`Ready-for-review email accepted by Resend: ${await sendDesignReadyEmail()}`);
 }
