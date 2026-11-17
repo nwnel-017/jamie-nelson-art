@@ -22,12 +22,12 @@ const portfolioArtworks = computed(
 </script>
 
 <template>
-  <section class="artistPortfolio" aria-labelledby="portfolio-heading">
-    <h1 id="portfolio-heading">Portfolio</h1>
-    <p v-if="error" class="statusMessage">
+  <section class="artistPage artistPortfolio" aria-labelledby="portfolio-heading">
+    <h1 id="portfolio-heading" class="artistHeading">Portfolio</h1>
+    <p v-if="error" class="artistStatus">
       The portfolio could not be loaded. Please try again later.
     </p>
-    <p v-else-if="!portfolioArtworks.length" class="statusMessage">
+    <p v-else-if="!portfolioArtworks.length" class="artistStatus">
       New artworks are coming soon.
     </p>
     <ul v-else class="portfolioGrid">
@@ -50,26 +50,9 @@ const portfolioArtworks = computed(
 </template>
 
 <style scoped>
-.artistPortfolio {
-  width: min(100% - 2rem, 120rem);
-  margin: 0 auto;
-  padding: 2.5rem 0 5rem;
-}
-
 .artistPortfolio h1 {
   margin: 0 0 2.5rem;
-  color: var(--artist-gold);
-  font-size: clamp(3rem, 3.8vw, 5rem);
-  line-height: 1.1;
-  font-weight: 700;
   text-align: center;
-}
-
-.statusMessage {
-  margin: 0;
-  text-align: center;
-  font-size: clamp(1.125rem, 1.65vw, 2.125rem);
-  line-height: 1.2;
 }
 
 .portfolioGrid {
@@ -105,8 +88,8 @@ const portfolioArtworks = computed(
 
 @media (min-width: 768px) {
   .artistPortfolio {
-    width: min(81.5%, 120rem);
-    padding: 3vw 0 10vw;
+    --artist-page-width: 81.5%;
+    --artist-page-padding: 3vw 0 10vw;
   }
 
   .artistPortfolio h1 {

@@ -28,7 +28,7 @@ const bioParagraphs = computed(() => {
 </script>
 
 <template>
-  <section class="artistAbout" aria-labelledby="about-heading">
+  <section class="artistPage artistAbout" aria-labelledby="about-heading">
     <div class="portrait">
       <NuxtImg
         v-if="profile?.imageUrl && !portraitFailed"
@@ -49,7 +49,7 @@ const bioParagraphs = computed(() => {
       </div>
     </div>
     <div class="biography">
-      <h1 id="about-heading">About</h1>
+      <h1 id="about-heading" class="artistHeading">About</h1>
       <p v-for="(paragraph, index) in bioParagraphs" :key="index">{{ paragraph }}</p>
     </div>
   </section>
@@ -57,9 +57,8 @@ const bioParagraphs = computed(() => {
 
 <style scoped>
 .artistAbout {
-  width: min(88.5%, 72rem);
-  margin: 0 auto;
-  padding: 2.5rem 0 5rem;
+  --artist-page-width: 88.5%;
+  --artist-content-max: 72rem;
   display: flow-root;
 }
 
@@ -105,10 +104,6 @@ const bioParagraphs = computed(() => {
 
 .biography h1 {
   margin: 0 0 1.75rem;
-  color: var(--artist-gold);
-  font-size: clamp(3rem, 3.8vw, 5rem);
-  line-height: 1.1;
-  font-weight: 700;
 }
 
 .biography p {
@@ -132,7 +127,7 @@ const bioParagraphs = computed(() => {
 
 @media (min-width: 768px) {
   .artistAbout {
-    padding: 2.8vw 0 10vw;
+    --artist-page-padding: 2.8vw 0 10vw;
   }
 
   .biography h1 {
@@ -142,7 +137,7 @@ const bioParagraphs = computed(() => {
 
 @media (min-width: 1024px) {
   .artistAbout {
-    width: min(88.5%, 120rem);
+    --artist-content-max: 120rem;
     display: grid;
     grid-template-columns: minmax(0, 36.25%) minmax(0, 1fr);
     gap: 6.3vw;

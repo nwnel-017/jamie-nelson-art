@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import "~/assets/styles/artist.css";
 import Instagram from "~/assets/icons/instagram.svg";
 
 const menuOpen = ref(false);
@@ -75,8 +76,6 @@ watch(() => route.fullPath, () => { menuOpen.value = false; });
 
 <style scoped>
 .artistSite {
-  --artist-gold: #e8ac50;
-  --artist-blue: #2d4050;
   min-height: 100dvh;
   width: 100%;
   display: flex;

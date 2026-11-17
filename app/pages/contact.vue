@@ -14,8 +14,8 @@ useSeoMeta({
 </script>
 
 <template>
-  <section class="artistContact" aria-labelledby="contact-heading">
-    <h1 id="contact-heading">Contact</h1>
+  <section class="artistPage artistContact" aria-labelledby="contact-heading">
+    <h1 id="contact-heading" class="artistHeading">Contact</h1>
     <div class="contactDetails">
       <p>
         For commissions, collaborations, &amp; other general enquiries:
@@ -36,10 +36,8 @@ useSeoMeta({
 
 <style scoped>
 .artistContact {
-  width: min(88.5%, 120rem);
+  --artist-page-width: 88.5%;
   min-height: 100%;
-  margin: 0 auto;
-  padding: 2.5rem 0 5rem;
   display: grid;
   gap: 4rem;
   justify-items: center;
@@ -48,10 +46,6 @@ useSeoMeta({
 
 .artistContact h1 {
   margin: 0;
-  color: var(--artist-gold);
-  font-size: clamp(3rem, 3.8vw, 5rem);
-  line-height: 1.1;
-  font-weight: 700;
 }
 
 .contactDetails {
@@ -60,7 +54,7 @@ useSeoMeta({
   flex-direction: column;
   align-items: center;
   gap: 1.75em;
-  font-size: clamp(1.125rem, 1.65vw, 2.125rem);
+  font-size: var(--artist-body-size);
   line-height: 1.2;
 }
 
@@ -102,7 +96,7 @@ useSeoMeta({
   .artistContact {
     grid-template-rows: 1fr auto 1fr;
     gap: 0;
-    padding: 2.8vw 0;
+    --artist-page-padding: 2.8vw 0;
   }
 
   .artistContact h1 {

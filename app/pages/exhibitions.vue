@@ -148,8 +148,8 @@ function dateParts(entry: Entry) {
 </script>
 
 <template>
-  <section class="artistExhibitions" aria-labelledby="exhibitions-heading">
-    <h1 id="exhibitions-heading">Exhibitions &amp; Projects</h1>
+  <section class="artistPage artistExhibitions" aria-labelledby="exhibitions-heading">
+    <h1 id="exhibitions-heading" class="artistHeading">Exhibitions &amp; Projects</h1>
     <div class="listings">
       <section
         v-for="section in pageSections"
@@ -193,25 +193,15 @@ function dateParts(entry: Entry) {
 </template>
 
 <style scoped>
-.artistExhibitions {
-  width: min(100% - 2rem, 120rem);
-  margin: 0 auto;
-  padding: 2.5rem 0 5rem;
-}
-
 .artistExhibitions h1 {
   margin: 0 0 2rem;
-  color: var(--artist-gold);
-  font-size: clamp(3rem, 3.8vw, 5rem);
-  line-height: 1.1;
-  font-weight: 700;
   text-align: center;
 }
 
 .listings {
   display: grid;
   gap: 2.5rem;
-  font-size: clamp(1.125rem, 1.65vw, 2.125rem);
+  font-size: var(--artist-body-size);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -299,8 +289,8 @@ a.entryTitle:focus-visible {
 
 @media (min-width: 768px) {
   .artistExhibitions {
-    width: min(76%, 120rem);
-    padding: 2.8vw 0 3.5vw;
+    --artist-page-width: 76%;
+    --artist-page-padding: 2.8vw 0 3.5vw;
   }
 
   .artistExhibitions h1 {

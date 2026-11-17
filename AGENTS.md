@@ -62,3 +62,7 @@ Use the default triage labels: `needs-triage`, `needs-info`, `ready-for-agent`, 
 ### Domain docs
 
 This is a single-context repo. See `docs/agents/domain.md`.
+
+### Frontend
+
+For public page, layout, or theme changes, read `docs/agents/frontend.md` before choosing files to edit.
