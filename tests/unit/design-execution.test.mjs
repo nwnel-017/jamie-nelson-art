@@ -62,3 +62,15 @@ test('instruction file paths cannot escape the checkout', () => {
     assert.throws(() => validateTechnicalInstructions(plan), /Invalid technical instructions/, name);
   }
 });
+
+test("approved image URLs and intended uses reach the execution prompt unchanged", (t) => {
+  const plan = valid();
+  plan.tasks[0].description =
+    "Use https://storage.example/design_images/logo.png in the header and footer";
+  const { result, job } = run(t, plan);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(
+    readFileSync(join(job, "execution-prompt.txt"), "utf8"),
+    /https:\/\/storage.example\/design_images\/logo.png in the header and footer/,
+  );
+});

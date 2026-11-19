@@ -379,3 +379,188 @@ test.each([
     expect(approved).not.toHaveBeenCalled();
   },
 );
+
+function imageDraft() {
+  const draft = designRequest.draft;
+  const question = draft?.clarifying_questions[0];
+  if (!draft || !question) throw new Error("Missing clarification fixture");
+  return { draft, questionId: question.id };
+}
+function selectImage(container: HTMLElement, file: File) {
+  const input = container.querySelector('input[type="file"]');
+  if (!input) throw new Error("Missing image upload control");
+  fireEvent.change(input, { target: { files: [file] } });
+}
+
+test("image questions require an upload and show its filename before submission", async () => {
+  const { draft, questionId } = imageDraft();
+  const imageQuestion = {
+    id: questionId,
+    question: "Upload the logo",
+    type: "image" as const,
+  };
+  const initial = {
+    ...designRequest,
+    clarifying_questions: [imageQuestion.question],
+    draft: { ...draft, clarifying_questions: [imageQuestion] },
+  };
+  const image = {
+    id: "12345678-1234-4234-8234-123456789abe",
+    question_id: imageQuestion.id,
+    filename: "logo.png",
+    url: "http://127.0.0.1:54321/storage/v1/object/public/design_images/logo.png",
+  };
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ image }) })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ image: { ...image, filename: "replacement.png" } }),
+    })
+    .mockResolvedValueOnce({ ok: false });
+  globalThis.fetch = fetchMock;
+  const { container } = renderInTestProvider(<Review initial={initial} />);
+  expect(screen.getByText(/publicly accessible/i)).toBeTruthy();
+  expect(
+    screen
+      .getByRole("button", { name: "Submit" })
+      .getAttribute("aria-disabled"),
+  ).toBe("true");
+  expect(screen.queryByText(/placeholder/i)).toBeNull();
+  const file = new File(["png"], "logo.png", { type: "image/png" });
+  selectImage(container, file);
+  await screen.findByText("logo.png");
+  expect(screen.queryByRole("img")).toBeNull();
+  expect(
+    screen
+      .getByRole("button", { name: "Submit" })
+      .getAttribute("aria-disabled"),
+  ).not.toBe("true");
+  selectImage(
+    container,
+    new File(["png"], "replacement.png", { type: "image/png" }),
+  );
+  await screen.findByText("replacement.png");
+  fireEvent.change(screen.getByRole("textbox", { name: "Optional note" }), {
+    target: { value: "Use in header" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+  await screen.findByText("Could not analyze your answers. Please try again.");
+  expect(JSON.parse(fetchMock.mock.calls[2][1].body).answers).toEqual([
+    {
+      question_id: imageQuestion.id,
+      answer: "Use in header",
+      image_id: image.id,
+    },
+  ]);
+  expect(fetchMock.mock.calls[0][1].body).toBe(file);
+});
+
+test("a suitability concern allows keeping the supplied image explicitly", async () => {
+  const { draft, questionId } = imageDraft();
+  const q = {
+    id: questionId,
+    question: "Keep this image or upload a replacement?",
+    type: "image" as const,
+    image_id: "12345678-1234-4234-8234-123456789abe",
+    concern: "This image will need heavy cropping.",
+  };
+  const image = {
+    id: q.image_id,
+    question_id: q.id,
+    filename: "portrait.png",
+    url: "https://storage.example/portrait.png",
+  };
+  const initial = {
+    ...designRequest,
+    clarifying_questions: [q.question],
+    draft: {
+      ...draft,
+      clarifying_questions: [q],
+      answers: [{ question_id: q.id, image }],
+    },
+  };
+  const fetchMock = jest.fn().mockResolvedValueOnce({ ok: false });
+  globalThis.fetch = fetchMock;
+  renderInTestProvider(<Review initial={initial} />);
+  expect(screen.getByText(q.concern)).toBeTruthy();
+  expect(screen.getByText(image.filename)).toBeTruthy();
+  expect(
+    screen
+      .getByRole("button", { name: "Submit" })
+      .getAttribute("aria-disabled"),
+  ).toBe("true");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Keep this image anyway" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+  await screen.findByText("Could not analyze your answers. Please try again.");
+  expect(JSON.parse(fetchMock.mock.calls[0][1].body).answers).toEqual([
+    { question_id: q.id, answer: "", image_id: image.id, keep_anyway: true },
+  ]);
+});
+
+test("mixed questions keep each image attached to its own answer", async () => {
+  const { draft, questionId } = imageDraft();
+  const pageId = "12345678-1234-4234-8234-123456789ac1";
+  const portraitId = "12345678-1234-4234-8234-123456789ac2";
+  const questions = [
+    { id: questionId, type: "image" as const, question: "Upload logo" },
+    { id: pageId, question: "Which page?" },
+    { id: portraitId, type: "image" as const, question: "Upload portrait" },
+  ];
+  const image = {
+    id: "12345678-1234-4234-8234-123456789ac3",
+    question_id: questionId,
+    filename: "logo.png",
+    url: "https://storage.example/logo.png",
+  };
+  const portrait = {
+    ...image,
+    id: "12345678-1234-4234-8234-123456789ac4",
+    question_id: portraitId,
+    filename: "portrait.png",
+  };
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ image }) })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ image: portrait }),
+    })
+    .mockResolvedValueOnce({ ok: false });
+  globalThis.fetch = fetchMock;
+  const { container } = renderInTestProvider(
+    <Review
+      initial={{
+        ...designRequest,
+        clarifying_questions: questions.map((q) => q.question),
+        draft: { ...draft, clarifying_questions: questions },
+      }}
+    />,
+  );
+  selectImage(container, new File(["png"], "logo.png", { type: "image/png" }));
+  await screen.findByText("logo.png");
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Which page?" }), {
+    target: { value: "/gallery" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  expect(
+    screen
+      .getByRole("button", { name: "Submit" })
+      .getAttribute("aria-disabled"),
+  ).toBe("true");
+  selectImage(
+    container,
+    new File(["png"], "portrait.png", { type: "image/png" }),
+  );
+  await screen.findByText("portrait.png");
+  fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+  await screen.findByText("Could not analyze your answers. Please try again.");
+  expect(JSON.parse(fetchMock.mock.calls[2][1].body).answers).toEqual([
+    { question_id: questionId, answer: "", image_id: image.id },
+    { question_id: pageId, answer: "/gallery" },
+    { question_id: portraitId, answer: "", image_id: portrait.id },
+  ]);
+});

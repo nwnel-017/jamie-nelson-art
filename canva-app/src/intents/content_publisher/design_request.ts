@@ -8,18 +8,41 @@ export interface DesignPlan {
     details?: string;
   }[];
 }
+export interface DesignImage {
+  id: string;
+  question_id: string;
+  filename: string;
+  url: string;
+}
+export interface DraftQuestion {
+  id: string;
+  question: string;
+  type?: "text" | "image";
+  image_id?: string;
+  concern?: string;
+}
 export interface DesignDraft {
   id: string;
   version: number;
   ready: boolean;
   plan: DesignPlan;
   response: string;
-  clarifying_questions: { id: string; question: string }[];
+  clarifying_questions: DraftQuestion[];
+  answers?: {
+    question_id: string;
+    image?: DesignImage;
+    keep_anyway?: boolean;
+  }[];
 }
 export interface ClarificationSubmission {
   draft_version: number;
   submission_id: string;
-  answers: { question_id: string; answer: string }[];
+  answers: {
+    question_id: string;
+    answer: string;
+    image_id?: string;
+    keep_anyway?: boolean;
+  }[];
 }
 export class DesignAnalysisError extends Error {
   constructor(
@@ -68,7 +91,9 @@ function isDesignImageUrl(value: unknown): value is string {
       url.protocol === "https:" ||
       (url.protocol === "http:" &&
         ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname) &&
-        url.pathname.startsWith("/storage/v1/object/public/website_designs/"))
+        /^\/storage\/v1\/object\/public\/(?:website_designs|design_images)\//.test(
+          url.pathname,
+        ))
     );
   } catch {
     return false;
@@ -147,7 +172,14 @@ export function parseDesignRequestResponse(value: unknown): DesignRequest {
           "id" in q &&
           isRequestId(q.id) &&
           "question" in q &&
-          typeof q.question === "string",
+          typeof q.question === "string" &&
+          (!("type" in q) || q.type === "text" || q.type === "image") &&
+          (!("image_id" in q) ||
+            ("type" in q &&
+              q.type === "image" &&
+              isRequestId(q.image_id) &&
+              "concern" in q &&
+              typeof q.concern === "string")),
       )
     )
       throw new Error("The portfolio returned an invalid draft.");
@@ -255,4 +287,62 @@ export async function approveDesignRequest(
     throw new Error(
       "The portfolio did not confirm that technical planning was queued.",
     );
+}
+
+export async function uploadDesignAsset(
+  id: string,
+  backendHost: string,
+  version: number,
+  questionId: string,
+  file: File,
+): Promise<DesignImage> {
+  if (!isRequestId(id) || !isRequestId(questionId))
+    throw new Error("Invalid design request or question.");
+  if (file.size > 5 * 1024 * 1024)
+    throw new Error(
+      "Image exceeds the 5 MB limit. Please upload a smaller image.",
+    );
+  const token = await auth.getCanvaUserToken();
+  const query = new URLSearchParams({
+    draft_version: String(version),
+    question_id: questionId,
+    filename: file.name,
+  });
+  const response = await fetch(
+    `${backendHost.replace(/\/$/, "")}/api/agent/images/${id}?${query}`,
+    {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": file.type || "application/octet-stream",
+      },
+      body: file,
+      signal: AbortSignal.timeout(90000),
+    },
+  );
+  if (!response.ok) {
+    let message = "Could not upload the image. Please try again.";
+    try {
+      const error = await response.json();
+      if (
+        typeof error.statusMessage === "string" &&
+        error.statusMessage.length <= 500
+      )
+        message = error.statusMessage;
+    } catch {
+      /* Use the upload error fallback. */
+    }
+    throw new Error(message);
+  }
+  const { image } = await response.json();
+  if (
+    !image ||
+    !isRequestId(image.id) ||
+    image.question_id !== questionId ||
+    typeof image.filename !== "string" ||
+    !isDesignImageUrl(image.url)
+  )
+    throw new Error("The portfolio returned an invalid image answer.");
+  return image;
 }

@@ -948,3 +948,25 @@ test("local test access still verifies the Canva token and returns the actual ow
     status(503),
   );
 });
+
+test("gathering preserves a structured image question in the saved draft", async () => {
+  const { client } = gatherDatabase();
+  const saved = await gatherRequirements(client, "owner", gatherInput(), {
+    limit: 4,
+    model: {
+      generate: async () => ({
+        text: JSON.stringify({
+          ...verification,
+          clarifying_questions: [
+            { type: "image", question: "Upload the exact logo for the header" },
+          ],
+        }),
+      }),
+    },
+  });
+  assert.equal(saved.draft?.clarifying_questions[0]?.type, "image");
+  assert.equal(
+    saved.draft?.clarifying_questions[0]?.question,
+    "Upload the exact logo for the header",
+  );
+});
