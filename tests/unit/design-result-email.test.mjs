@@ -155,7 +155,7 @@ test('untrusted workflow events and stale verification cannot send a ready email
   }
   const { emails, request } = verifiedTransport({ stale: true });
   await notifyDesignResult(verification, env, request, async () => {});
-  assert.match(emails[0].text, /contact the developer/);
+  assert.equal(emails.length, 0);
 });
 
 test('an unclaimed duplicate planning dispatch does not send a failure email', async () => {
@@ -238,4 +238,25 @@ test('a preview status cannot select failure while verification is still active'
   );
   assert.equal(result, null);
   assert.equal(emails.length, 0);
+});
+
+test('temporary PR and preview API errors leave notification retryable without saving failure', async () => {
+  for (const path of ['/pulls/17', '/deployments?']) {
+    const { emails, request } = verifiedTransport();
+    let saved = false;
+    await assert.rejects(
+      notifyDesignResult(verification, env, async (url, options) => {
+        if (String(url).includes(path)) return new Response('{}', { status: 503 });
+        if (
+          String(url).startsWith(env.TECHNICAL_JOBS_BACKEND_URL) &&
+          JSON.parse(options.body).action === 'save'
+        )
+          saved = true;
+        return request(url, options);
+      }),
+      /HTTP 503/,
+    );
+    assert.equal(saved, false);
+    assert.equal(emails.length, 0);
+  }
 });

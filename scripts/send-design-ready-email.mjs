@@ -14,6 +14,8 @@ function httpsUrl(value) {
   return url.toString();
 }
 
+export class PreviewDeploymentError extends Error {}
+
 // Find the preview URL for this commit; deployment does not need to be ready yet.
 export async function resolvePreviewUrl(env = process.env, request = fetch) {
   const repository = required(env, 'GITHUB_REPOSITORY');
@@ -52,8 +54,10 @@ export async function resolvePreviewUrl(env = process.env, request = fetch) {
     )
       continue;
     const statuses = await get(`deployments/${deployment.id}/statuses?per_page=1`);
-    const status = Array.isArray(statuses) ? statuses[0] : undefined;
-    if (['failure', 'error'].includes(status?.state)) throw new Error('Preview deployment failed.');
+    if (!Array.isArray(statuses)) throw new Error('Invalid preview status response.');
+    const status = statuses[0];
+    if (['failure', 'error'].includes(status?.state))
+      throw new PreviewDeploymentError('Preview deployment failed.');
     if (status?.state === 'inactive' || !status?.environment_url) continue;
     return httpsUrl(status.environment_url);
   }

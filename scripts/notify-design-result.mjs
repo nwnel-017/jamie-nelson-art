@@ -6,6 +6,7 @@ import {
   createResultEmail,
   sendSavedResultEmail,
   resolvePreviewUrl,
+  PreviewDeploymentError,
 } from './send-design-ready-email.mjs';
 
 const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
@@ -138,35 +139,41 @@ export async function notifyDesignResult(run, env = process.env, request = fetch
     )
       return null;
     if (jobs.find((job) => job.name === 'ready')?.conclusion !== 'success') return fail();
-    let readyEnv;
+    const pr = await get(`pulls/${match[1]}`);
+    if (
+      !pr ||
+      typeof pr.state !== 'string' ||
+      typeof pr.head?.ref !== 'string' ||
+      !/^[0-9a-f]{40}$/.test(pr.head?.sha)
+    ) {
+      throw new Error('Invalid pull request response.');
+    }
+    if (pr.state !== 'open' || !new RegExp(`^agent/design-${uuid}$`, 'i').test(pr.head.ref))
+      return null;
+    const statuses = await get(`commits/${pr.head.sha}/statuses?per_page=100`);
+    if (!Array.isArray(statuses)) throw new Error('Invalid verification status response.');
+    const status = statuses.find((item) => item.context === 'design-verification');
+    // Ignore a completed run if the PR now points at a different verification result.
+    if (
+      status?.state !== 'success' ||
+      status.target_url !== `https://github.com/${env.GITHUB_REPOSITORY}/actions/runs/${run.id}`
+    )
+      return null;
+    const readyEnv = {
+      ...mailEnv,
+      DESIGN_PR_NUMBER: match[1],
+      DESIGN_PR_URL: `https://github.com/${env.GITHUB_REPOSITORY}/pull/${match[1]}`,
+      DESIGN_HEAD_SHA: pr.head.sha,
+    };
     let previewUrl;
     try {
-      const pr = await get(`pulls/${match[1]}`);
-      if (
-        pr.state !== 'open' ||
-        !new RegExp(`^agent/design-${uuid}$`, 'i').test(pr.head?.ref) ||
-        !/^[0-9a-f]{40}$/.test(pr.head?.sha)
-      )
-        throw new Error('PR no longer matches verification.');
-      const statuses = await get(`commits/${pr.head.sha}/statuses?per_page=100`);
-      const status = statuses.find((item) => item.context === 'design-verification');
-      if (
-        status?.state !== 'success' ||
-        status.target_url !== `https://github.com/${env.GITHUB_REPOSITORY}/actions/runs/${run.id}`
-      )
-        throw new Error('PR no longer points at this verified commit.');
-      readyEnv = {
-        ...mailEnv,
-        DESIGN_PR_NUMBER: match[1],
-        DESIGN_PR_URL: `https://github.com/${env.GITHUB_REPOSITORY}/pull/${match[1]}`,
-        DESIGN_HEAD_SHA: pr.head.sha,
-      };
-      // Send a pending preview immediately; a later deployment event can supply a missing URL.
       previewUrl = await resolvePreviewUrl(readyEnv, request);
-      if (!previewUrl) return null;
-    } catch {
-      return fail();
+    } catch (error) {
+      // Only a confirmed deployment failure should select the failure email.
+      if (error instanceof PreviewDeploymentError) return fail();
+      throw error;
     }
+    if (!previewUrl) return null;
     return deliver(createResultEmail('ready', readyEnv, previewUrl));
   }
   // Ignore duplicate claims and successful handoffs to verification.
@@ -206,6 +213,7 @@ export async function notifyPreviewStatus(event, env = process.env, request = fe
     return response.json();
   };
   const statuses = await get(`commits/${event.sha}/statuses?per_page=100`);
+  if (!Array.isArray(statuses)) throw new Error('Invalid verification status response.');
   const verified = statuses.find((item) => item.context === 'design-verification');
   if (verified?.state !== 'success') return null;
   const prefix = `https://github.com/${env.GITHUB_REPOSITORY}/actions/runs/`;

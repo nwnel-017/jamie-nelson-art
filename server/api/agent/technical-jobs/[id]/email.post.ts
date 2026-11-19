@@ -32,9 +32,10 @@ export default defineEventHandler(async (event) => {
       throw new HandoffError(422, "Provide a valid email state action.");
     const client = serverSupabaseServiceRole<Database>(event);
     if (body.data.action === "save")
-      return saveResultEmail(client, jobId, body.data.email);
-    if (body.data.action === "sent") return markResultEmailSent(client, jobId);
-    return getResultEmail(client, jobId);
+      return await saveResultEmail(client, jobId, body.data.email);
+    if (body.data.action === "sent")
+      return await markResultEmailSent(client, jobId);
+    return await getResultEmail(client, jobId);
   } catch (error) {
     throw agentRequestError(error, "Could not update result email state.");
   }
