@@ -37,6 +37,29 @@ npm run canva
 
 Ready drafts offer Approve, which sends a bodyless POST to
 `/api/agent/execute/:id`. An accepted response queues technical planning and
-implementation; Canva confirms that a pull request will be prepared. Publish
-completes after acceptance and the saved workflow is cleared. This stage does not
-automatically verify, repair, merge, or send email about the generated PR.
+implementation; Canva confirms that the agent is working and asks the admin to
+watch their email inbox. Publish completes after acceptance and clears the saved
+workflow.
+
+The completion notification workflow sends the configured admin either:
+
+- An approval email with the verified commit's Vercel preview and PR links.
+- A failure email asking them to contact the developer, including a request reference.
+
+Repair handoffs do not send intermediate emails. Preview links can be sent while
+Vercel is still deploying. If no URL exists yet, Vercel's commit-status event retries
+notification when one becomes available.
+
+Each technical job stores its selected email and delivery time. The notification
+workflow reads and updates that state through an authenticated API, then sends
+through Resend with a stable idempotency key. Failed sends remain visible in the
+workflow and can be retried by rerunning it. Nothing merges automatically.
+
+Notifications require the workflow on the default branch, repository secrets
+`RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `ADMIN_EMAIL`, and a preview URL
+reported through GitHub deployments. The existing `TECHNICAL_JOBS_BACKEND_URL`
+variable supplies the state API origin; GitHub OIDC authenticates requests, so no
+database credentials are added to GitHub. Apply the new email-state migration
+before enabling the updated notification workflow. `DESIGN_PREVIEW_ENVIRONMENT` defaults to
+`Preview`. Set `DESIGN_WORKFLOW_REF` to the backend's configured planning workflow
+branch if it differs from `master`.
