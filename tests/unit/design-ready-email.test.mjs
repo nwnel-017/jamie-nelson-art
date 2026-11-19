@@ -72,3 +72,35 @@ test('GitHub and Resend errors propagate without leaking response bodies', async
   const missing = transport({ sendResult: {} });
   await assert.rejects(sendDesignReadyEmail(env, missing.request), /email ID/);
 });
+
+test('failure email does not require a PR and asks the admin to contact the developer', async () => {
+  const { sendDesignFailureEmail } = await import('../../scripts/send-design-ready-email.mjs');
+  const { request, calls } = transport();
+  await sendDesignFailureEmail({ ...env, DESIGN_JOB_ID: '12345678-1234-4234-8234-123456789abc' }, request);
+  const mail = calls.at(-1);
+  const body = JSON.parse(mail.options.body);
+  assert.match(body.text, /something went wrong/i);
+  assert.match(body.text, /contact.*developer/i);
+  assert.match(body.text, /12345678-1234-4234-8234-123456789abc/);
+  assert.equal(calls.length, 1);
+});
+
+test('temporary send failures retry with the same payload and key; permanent errors stop', async () => {
+  const { sendDesignFailureEmail } = await import('../../scripts/send-design-ready-email.mjs');
+  const calls = [];
+  const options = { ...env, DESIGN_JOB_ID: '12345678-1234-4234-8234-123456789abc' };
+  await sendDesignFailureEmail(options, async (url, request) => {
+    calls.push(request);
+    if (calls.length === 1) throw new Error('Network unavailable');
+    return calls.length === 2 ? json({}, 503) : json({ id: 'sent' });
+  }, async () => {});
+  assert.equal(calls.length, 3);
+  assert.equal(calls[0].body, calls[2].body);
+  assert.equal(calls[0].headers['Idempotency-Key'], calls[2].headers['Idempotency-Key']);
+  let attempts = 0;
+  await assert.rejects(sendDesignFailureEmail(options, async () => { attempts++; return json({}, 422); }, async () => {}), /HTTP 422/);
+  assert.equal(attempts, 1);
+  attempts = 0;
+  await assert.rejects(sendDesignFailureEmail(options, async () => { attempts++; return json({}, 503); }, async () => {}), /HTTP 503/);
+  assert.equal(attempts, 3);
+});

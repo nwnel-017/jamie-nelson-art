@@ -37,6 +37,22 @@ npm run canva
 
 Ready drafts offer Approve, which sends a bodyless POST to
 `/api/agent/execute/:id`. An accepted response queues technical planning and
-implementation; Canva confirms that a pull request will be prepared. Publish
-completes after acceptance and the saved workflow is cleared. This stage does not
-automatically verify, repair, merge, or send email about the generated PR.
+implementation; Canva confirms that the agent is working and asks the admin to
+watch their email inbox. Publish completes after acceptance and clears the saved
+workflow.
+
+The completion notification workflow sends the configured admin either:
+
+- An approval email with the verified commit's Vercel preview and PR links.
+- A failure email asking them to contact the developer, including a request reference.
+
+Repair handoffs do not send intermediate emails. Preview lookup waits up to five
+minutes. Notification retries preserve their selected outcome in GitHub commit
+statuses and reuse Resend idempotency keys. Failed sends remain visible in the
+notification workflow and can be retried by rerunning it. Nothing merges automatically.
+
+Notifications require the workflow on the default branch, repository secrets
+`RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `ADMIN_EMAIL`, and a successful preview
+reported through GitHub deployments. `DESIGN_PREVIEW_ENVIRONMENT` defaults to
+`Preview`. Set `DESIGN_WORKFLOW_REF` to the backend's configured planning workflow
+branch if it differs from `master`.

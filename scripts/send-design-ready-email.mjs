@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { setTimeout as delay } from 'node:timers/promises';
 
 function required(env, key) {
   const value = env[key]?.trim();
@@ -27,6 +28,7 @@ export async function resolvePreviewUrl(env = process.env, request = fetch) {
   const get = async pathname => {
     const response = await request(`https://api.github.com/repos/${repository}/${pathname}`, {
       redirect: 'error',
+      signal: AbortSignal.timeout(15000),
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2026-03-10' },
     });
     if (!response.ok) throw new Error(`Could not read preview deployment (HTTP ${response.status}).`);
@@ -47,32 +49,58 @@ export async function resolvePreviewUrl(env = process.env, request = fetch) {
 
 const escapeHtml = value => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 
-// Send the preview and PR links, deduplicating retries by PR and commit.
-export async function sendDesignReadyEmail(env = process.env, request = fetch) {
+// A failure can happen before a pull request exists.
+export async function sendDesignFailureEmail(env = process.env, request = fetch, wait = delay) {
+  const job = required(env, 'DESIGN_JOB_ID');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(job)) throw new Error('Invalid technical job ID.');
+  return sendEmail(env, request, `design-failed/${job}`, {
+    subject: 'Something went wrong updating your site',
+    text: `Something went wrong while updating your site. Please contact the developer for help.\n\nRequest reference: ${job}`,
+    html: `<p>Something went wrong while updating your site. Please contact the developer for help.</p><p>Request reference: ${job}</p>`,
+  }, wait);
+}
+
+async function sendEmail(env, request, key, content, wait = delay) {
   const apiKey = required(env, 'RESEND_API_KEY');
   const from = required(env, 'RESEND_FROM_EMAIL');
   const to = required(env, 'ADMIN_EMAIL');
-  const prNumber = required(env, 'DESIGN_PR_NUMBER');
-  const sha = required(env, 'DESIGN_HEAD_SHA');
-  const prUrl = httpsUrl(required(env, 'DESIGN_PR_URL'));
-  if (!/^[1-9][0-9]*$/.test(prNumber) || !/^[0-9a-f]{40}$/.test(sha)) throw new Error('Invalid pull request number or reviewed commit.');
-  const previewUrl = await resolvePreviewUrl(env, request);
-  const response = await request('https://api.resend.com/emails', {
-    method: 'POST',
-    redirect: 'error',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `design-ready/${prNumber}/${sha}` },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject: `Website changes are ready to review (PR #${prNumber})`,
-      html: `<p>Your site changes are ready to review.</p><p><a href="${escapeHtml(previewUrl)}">Open the preview</a></p><p><a href="${escapeHtml(prUrl)}">Review the pull request</a></p>`,
-      text: `Your site changes are ready to review.\n\nPreview: ${previewUrl}\nPull request: ${prUrl}`,
-    }),
-  });
+  let response;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      response = await request('https://api.resend.com/emails', {
+        method: 'POST',
+        redirect: 'error',
+        signal: AbortSignal.timeout(15000),
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': key },
+        body: JSON.stringify({ from, to: [to], ...content }),
+      });
+    } catch {
+      if (attempt === 2) throw new Error('Could not reach the email provider after three attempts.');
+      await wait(1000 * 2 ** attempt);
+      continue;
+    }
+    if (response.ok || (response.status !== 429 && response.status < 500) || attempt === 2) break;
+    await wait(1000 * 2 ** attempt);
+  }
   if (!response.ok) throw new Error(`Resend rejected the email (HTTP ${response.status}).`);
   const result = await response.json();
   if (typeof result.id !== 'string' || !result.id) throw new Error('Resend did not return an email ID.');
   return result.id;
+}
+
+// Send the preview and PR links, deduplicating retries by PR and commit.
+export async function sendDesignReadyEmail(env = process.env, request = fetch, { previewUrl, wait = delay } = {}) {
+  for (const key of ['RESEND_API_KEY', 'RESEND_FROM_EMAIL', 'ADMIN_EMAIL']) required(env, key);
+  const prNumber = required(env, 'DESIGN_PR_NUMBER');
+  const sha = required(env, 'DESIGN_HEAD_SHA');
+  const prUrl = httpsUrl(required(env, 'DESIGN_PR_URL'));
+  if (!/^[1-9][0-9]*$/.test(prNumber) || !/^[0-9a-f]{40}$/.test(sha)) throw new Error('Invalid pull request number or reviewed commit.');
+  const preview = httpsUrl(previewUrl ?? await resolvePreviewUrl(env, request));
+  return sendEmail(env, request, `design-ready/${prNumber}/${sha}`, {
+    subject: `Website changes are ready for approval (PR #${prNumber})`,
+    html: `<p>Your site changes are ready for approval.</p><p><a href="${escapeHtml(preview)}">Open the preview</a></p><p><a href="${escapeHtml(prUrl)}">Review the pull request</a></p>`,
+    text: `Your site changes are ready for approval.\n\nPreview: ${preview}\nPull request: ${prUrl}`,
+  }, wait);
 }
 
 // Run the notification when called directly by the workflow.
