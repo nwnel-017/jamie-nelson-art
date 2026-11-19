@@ -83,6 +83,6 @@ jobs:
         if: failure()
         with:
           name: requirements-browser-traces
-          path: test-results/requirements-*.zip
+          path: test-results/requirements/
       - if: always()
         run: supabase stop --no-backup
