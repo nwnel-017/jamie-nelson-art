@@ -30,6 +30,20 @@ jobs:
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
       - name: Check pending migrations without applying them
         run: supabase db push --dry-run --remote
+  canva:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: canva-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: canva-app/package-lock.json
+      - run: npm ci
+      - run: npm test -- --ci
   test:
     runs-on: ubuntu-latest
     steps:
