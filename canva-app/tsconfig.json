@@ -46,6 +46,7 @@
   "include": [
     "./*.ts",
     "./src/**/*",
+    "./tests/**/*",
     "./backend/**/*",
     "./utils/**/*",
     "./scripts/**/*",

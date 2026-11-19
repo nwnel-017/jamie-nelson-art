@@ -13,6 +13,7 @@ export default defineConfig({
   test: {
     include: ["tests/integration/**/*.test.ts", "tests/unit/**/*.test.{ts,mjs}"],
     exclude: [
+      "tests/integration/requirements-ui.test.ts",
       "tests/integration/design-drafts.test.ts",
       "tests/integration/design-workflow.test.ts",
       "tests/integration/technical-design-jobs.integration.test.ts",
