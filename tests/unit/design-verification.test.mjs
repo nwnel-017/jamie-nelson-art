@@ -26,6 +26,9 @@ test('verification checks are mandatory and model execution is isolated from pub
   assert.deepEqual(notification.on.workflow_run.types, ['completed']);
   assert.deepEqual(notification.on.workflow_run.workflows, ['Generate technical design instructions', 'Verify design pull request']);
   assert.equal(notification.jobs.notify.permissions.deployments, 'read');
+  assert.equal(notification.jobs.notify.permissions['id-token'], 'write');
+  assert.equal(notification.jobs.notify.permissions.statuses, 'read');
+  assert.ok(Object.hasOwn(notification.on, 'status'));
   assert.equal(notification.jobs.notify.steps[0].with.ref, '${{ github.workflow_sha }}');
   assert.equal(workflow.concurrency['cancel-in-progress'], false);
 });

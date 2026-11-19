@@ -1,7 +1,8 @@
 name: Notify admin of design result
-run-name: Notify design run ${{ github.event.workflow_run.id }}
+run-name: Notify design run ${{ github.event.workflow_run.id || github.event.sha }}
 
 on:
+  status:
   workflow_run:
     workflows: [Generate technical design instructions, Verify design pull request]
     types: [completed]
@@ -9,11 +10,12 @@ on:
 permissions: {}
 
 concurrency:
-  group: design-notification-${{ github.event.workflow_run.id }}
+  group: design-notification-${{ github.event.workflow_run.id || github.event.sha }}
   cancel-in-progress: false
 
 jobs:
   notify:
+    if: github.event_name != 'status' || github.event.context == 'Vercel'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -21,7 +23,8 @@ jobs:
       actions: read
       pull-requests: read
       deployments: read
-      statuses: write
+      statuses: read
+      id-token: write
     steps:
       - name: Check out trusted notification code
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -34,6 +37,7 @@ jobs:
           node-version: 24
       - name: Email the terminal outcome
         env:
+          TECHNICAL_JOBS_BACKEND_URL: ${{ vars.TECHNICAL_JOBS_BACKEND_URL }}
           GH_TOKEN: ${{ github.token }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}

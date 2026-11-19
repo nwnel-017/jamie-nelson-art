@@ -1,6 +1,6 @@
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import { notifyDesignResult } from '../../scripts/notify-design-result.mjs';
+import { notifyDesignResult, notifyPreviewStatus } from '../../scripts/notify-design-result.mjs';
 const job = '12345678-1234-4234-8234-123456789abc';
 const env = {
   GITHUB_REPOSITORY: 'owner/repo',
@@ -8,12 +8,16 @@ const env = {
   RESEND_API_KEY: 'key',
   RESEND_FROM_EMAIL: 'updates@example.test',
   ADMIN_EMAIL: 'admin@example.test',
+  TECHNICAL_JOBS_BACKEND_URL: 'https://backend.example',
+  ACTIONS_ID_TOKEN_REQUEST_URL: 'https://oidc.example/token',
+  ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'test-identity',
 };
 const run = {
   id: 12,
   head_sha: 'b'.repeat(40),
   run_attempt: 1,
   event: 'workflow_dispatch',
+  status: 'completed',
   path: '.github/workflows/generate-technical-instructions.yml',
   head_branch: 'master',
   display_title: `Technical design job ${job}`,
@@ -22,7 +26,8 @@ const run = {
 const json = (value) => new Response(JSON.stringify(value));
 function createTransport(jobs, routes = {}) {
   const emails = [];
-  const recordedStatuses = [];
+  let resultEmail = null;
+  let sentAt = null;
 
   const request = async (url, options) => {
     const { origin, pathname } = new URL(url);
@@ -32,10 +37,12 @@ function createTransport(jobs, routes = {}) {
     }
 
     const path = pathname.replace('/repos/owner/repo/', '');
-    if (path === `commits/${run.head_sha}/statuses`) return json(recordedStatuses);
-    if (path === `statuses/${run.head_sha}` && options?.method === 'POST') {
-      recordedStatuses.unshift(JSON.parse(options.body));
-      return json({});
+    if (origin === 'https://oidc.example') return json({ value: 'signed-notification-token' });
+    if (origin === 'https://backend.example') {
+      const body = JSON.parse(options.body);
+      if (body.action === 'save' && !resultEmail) resultEmail = body.email;
+      if (body.action === 'sent') sentAt = '2026-11-19T00:00:00Z';
+      return json({ result_email: resultEmail, email_sent_at: sentAt });
     }
     if (path === 'actions/runs') return json({ workflow_runs: [] });
     if (path.endsWith('/jobs')) return json({ jobs });
@@ -123,7 +130,7 @@ test('verified results wait for the matching preview and send approval links', a
   assert.match(emails[0].text, /https:\/\/site-preview.vercel.app/);
 });
 test('terminal verification and unavailable preview outcomes send failure; repair handoff sends nothing', async () => {
-  for (const options of [{ ready: false }, { preview: 'failure' }, { preview: 'pending' }]) {
+  for (const options of [{ ready: false }, { preview: 'failure' }]) {
     const { emails, request } = verifiedTransport(options);
     await notifyDesignResult(verification, env, request, async () => {});
     assert.equal(emails.length, 1);
@@ -218,34 +225,26 @@ test('a failed email send retries the recorded outcome with unchanged content', 
   assert.match(emails[0].text, /ready for approval/);
 });
 
-test('an older recorded notification still prevents duplicate delivery after newer statuses', async () => {
-  const { emails, request } = createTransport([]);
-  await notifyDesignResult(run, env, request);
-  await notifyDesignResult(run, env, async (url, options) => {
-    if (
-      String(url).includes(`/commits/${run.head_sha}/statuses`) &&
-      !String(url).includes('page=2')
-    )
-      return json(Array.from({ length: 100 }, () => ({ context: 'another-check' })));
-    return request(url, options);
+test('a pending preview URL is sent without waiting for deployment readiness', async () => {
+  const { emails, request } = verifiedTransport({ preview: 'pending' });
+  await notifyDesignResult(verification, env, request, () => {
+    throw new Error('Must not wait');
   });
   assert.equal(emails.length, 1);
+  assert.match(emails[0].text, /may take a few minutes/);
 });
 
-test('status lookup stops at its page limit without selecting or sending an outcome', async () => {
-  const { emails, request } = createTransport([]);
-  let pages = 0;
-  await assert.rejects(
-    notifyDesignResult(run, env, async (url, options) => {
-      if (String(url).includes(`/commits/${run.head_sha}/statuses`)) {
-        pages++;
-        if (pages > 10) throw new Error('Exceeded expected page limit');
-        return json(Array.from({ length: 100 }, () => ({ context: 'another-check' })));
-      }
+test('a preview status cannot select failure while verification is still active', async () => {
+  const { emails, request } = verifiedTransport({ ready: false });
+  const result = await notifyPreviewStatus(
+    { context: 'Vercel', sha },
+    env,
+    async (url, options) => {
+      if (String(url).endsWith('/actions/runs/12'))
+        return json({ ...verification, status: 'in_progress' });
       return request(url, options);
-    }),
-    /Email status lookup exceeded 10 pages/,
+    },
   );
-  assert.equal(pages, 10);
+  assert.equal(result, null);
   assert.equal(emails.length, 0);
 });

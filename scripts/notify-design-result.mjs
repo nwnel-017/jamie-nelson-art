@@ -3,14 +3,11 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import {
-  sendDesignFailureEmail,
-  sendDesignReadyEmail,
+  createResultEmail,
+  sendSavedResultEmail,
   resolvePreviewUrl,
 } from './send-design-ready-email.mjs';
 
-const MAX_STATUS_PAGES = 10;
-const PREVIEW_ATTEMPTS = 11;
-const PREVIEW_INTERVAL_MS = 30000;
 const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 
 // Run from trusted workflow code after the design workflow finishes.
@@ -21,6 +18,7 @@ export async function notifyDesignResult(run, env = process.env, request = fetch
   if (
     (!planning && !verification) ||
     run.event !== 'workflow_dispatch' ||
+    run.status !== 'completed' ||
     run.head_branch !== (env.DESIGN_WORKFLOW_REF || 'master')
   )
     return null;
@@ -58,63 +56,54 @@ export async function notifyDesignResult(run, env = process.env, request = fetch
   };
   const jobId = planning ? match[1] : match[2];
   const mailEnv = { ...env, DESIGN_JOB_ID: jobId };
-  const context = `design-email/${jobId}/${run.id}`;
-  const statusPath = `statuses/${run.head_sha}`;
-  // Restore the selected outcome before inspecting PR state that may have changed.
-  let previous;
-  for (let page = 1; page <= MAX_STATUS_PAGES; page++) {
-    const statuses = await get(`commits/${run.head_sha}/statuses?per_page=100&page=${page}`);
-    if (!Array.isArray(statuses)) throw new Error('Invalid email status data.');
-    previous = statuses.find((status) => status.context === context);
-    if (previous || statuses.length < 100) break;
-    if (page === MAX_STATUS_PAGES) {
-      throw new Error(`Email status lookup exceeded ${MAX_STATUS_PAGES} pages.`);
-    }
-  }
-  if (previous?.state === 'success') return null;
-  // Record the email outcome on the workflow commit so retries keep the same message.
-  const save = async (state, description, targetUrl) => {
-    const response = await request(
-      `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/${statusPath}`,
-      {
-        method: 'POST',
+  const backend = new URL(env.TECHNICAL_JOBS_BACKEND_URL);
+  if (
+    backend.protocol !== 'https:' ||
+    backend.username ||
+    backend.password ||
+    backend.pathname !== '/' ||
+    backend.search ||
+    backend.hash
+  )
+    throw new Error('Invalid email state backend.');
+  let identity;
+  const emailState = async (action, email) => {
+    if (!identity) {
+      const url = new URL(env.ACTIONS_ID_TOKEN_REQUEST_URL);
+      url.searchParams.set('audience', `${backend.origin}/design-result-email`);
+      const response = await request(url, {
+        headers: { Authorization: `Bearer ${env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}` },
         redirect: 'error',
         signal: AbortSignal.timeout(15000),
-        headers: {
-          Authorization: `Bearer ${env.GH_TOKEN}`,
-          Accept: 'application/vnd.github+json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ state, context, description, target_url: targetUrl }),
-      },
-    );
-    if (!response.ok) throw new Error(`Could not record email outcome (HTTP ${response.status}).`);
-  };
-  const deliver = async (description, targetUrl, recorded = false) => {
-    if (!recorded) await save('pending', description, targetUrl);
-    let result;
-    if (description === 'failure') result = await sendDesignFailureEmail(mailEnv, request, wait);
-    else {
-      const ready = description.match(/^ready:([1-9][0-9]*):([0-9a-f]{40})$/);
-      if (!ready) throw new Error('Invalid recorded email outcome.');
-      result = await sendDesignReadyEmail(
-        {
-          ...mailEnv,
-          DESIGN_PR_NUMBER: ready[1],
-          DESIGN_HEAD_SHA: ready[2],
-          DESIGN_PR_URL: `https://github.com/${env.GITHUB_REPOSITORY}/pull/${ready[1]}`,
-        },
-        request,
-        { previewUrl: targetUrl, wait },
-      );
+      });
+      if (!response.ok) throw new Error('Could not authenticate email state request.');
+      identity = (await response.json()).value;
+      if (typeof identity !== 'string' || !identity)
+        throw new Error('Missing notification identity.');
     }
-    // Mark delivery complete only after Resend accepts the email.
-    await save('success', description, targetUrl);
+    const response = await request(`${backend.origin}/api/agent/technical-jobs/${jobId}/email`, {
+      method: 'POST',
+      redirect: 'error',
+      signal: AbortSignal.timeout(15000),
+      headers: { Authorization: `Bearer ${identity}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...(email ? { email } : {}) }),
+    });
+    if (!response.ok)
+      throw new Error(`Could not update result email state (HTTP ${response.status}).`);
+    return response.json();
+  };
+  const deliver = async (email, saved = false) => {
+    const state = saved ? { result_email: email } : await emailState('save', email);
+    if (state.email_sent_at) return null;
+    const result = await sendSavedResultEmail(state.result_email, mailEnv, request, wait);
+    await emailState('sent');
     return result;
   };
-  if (previous) return deliver(previous.description, previous.target_url, true);
-  const fail = () =>
-    deliver('failure', `https://github.com/${env.GITHUB_REPOSITORY}/actions/runs/${run.id}`);
+  // Restore the job's saved message before inspecting PR state that may have changed.
+  const previous = await emailState('read');
+  if (previous.email_sent_at) return null;
+  if (previous.result_email) return deliver(previous.result_email, true);
+  const fail = () => deliver(createResultEmail('failure', mailEnv));
   const { jobs } = await get(
     `actions/runs/${run.id}/attempts/${run.run_attempt}/jobs?per_page=100`,
   );
@@ -172,23 +161,13 @@ export async function notifyDesignResult(run, env = process.env, request = fetch
         DESIGN_PR_URL: `https://github.com/${env.GITHUB_REPOSITORY}/pull/${match[1]}`,
         DESIGN_HEAD_SHA: pr.head.sha,
       };
-      // Allow up to five minutes for the preview to become available.
-      for (let attempt = 0; attempt < PREVIEW_ATTEMPTS; attempt++) {
-        try {
-          previewUrl = await resolvePreviewUrl(readyEnv, request);
-          break;
-        } catch (error) {
-          if (attempt === PREVIEW_ATTEMPTS - 1) throw error;
-          await wait(PREVIEW_INTERVAL_MS);
-        }
-      }
-      const current = await get(`pulls/${match[1]}`);
-      if (current.state !== 'open' || current.head?.sha !== readyEnv.DESIGN_HEAD_SHA)
-        throw new Error('PR changed while waiting for preview.');
+      // Send a pending preview immediately; a later deployment event can supply a missing URL.
+      previewUrl = await resolvePreviewUrl(readyEnv, request);
+      if (!previewUrl) return null;
     } catch {
       return fail();
     }
-    return deliver(`ready:${match[1]}:${readyEnv.DESIGN_HEAD_SHA}`, previewUrl);
+    return deliver(createResultEmail('ready', readyEnv, previewUrl));
   }
   // Ignore duplicate claims and successful handoffs to verification.
   const claim = jobs.find((job) => job.name === 'claim');
@@ -211,7 +190,37 @@ export async function notifyDesignResult(run, env = process.env, request = fetch
   return fail();
 }
 
+// Vercel status events retry completed verification from the trusted default branch.
+export async function notifyPreviewStatus(event, env = process.env, request = fetch) {
+  if (event.context !== 'Vercel' || !/^[0-9a-f]{40}$/.test(event.sha)) return null;
+  const get = async (path) => {
+    const response = await request(
+      `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/${path}`,
+      {
+        headers: { Authorization: `Bearer ${env.GH_TOKEN}`, Accept: 'application/vnd.github+json' },
+        redirect: 'error',
+        signal: AbortSignal.timeout(15000),
+      },
+    );
+    if (!response.ok) throw new Error('Could not read preview verification.');
+    return response.json();
+  };
+  const statuses = await get(`commits/${event.sha}/statuses?per_page=100`);
+  const verified = statuses.find((item) => item.context === 'design-verification');
+  if (verified?.state !== 'success') return null;
+  const prefix = `https://github.com/${env.GITHUB_REPOSITORY}/actions/runs/`;
+  if (!verified.target_url?.startsWith(prefix)) return null;
+  const runId = verified.target_url.slice(prefix.length);
+  if (!/^[1-9][0-9]*$/.test(runId)) return null;
+  const run = await get(`actions/runs/${runId}`);
+  return notifyDesignResult(run, env, request);
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, 'utf8'));
-  console.log(await notifyDesignResult(event.workflow_run));
+  console.log(
+    event.workflow_run
+      ? await notifyDesignResult(event.workflow_run)
+      : await notifyPreviewStatus(event),
+  );
 }
