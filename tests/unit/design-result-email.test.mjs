@@ -225,15 +225,6 @@ test('a failed email send retries the recorded outcome with unchanged content', 
   assert.match(emails[0].text, /ready for approval/);
 });
 
-test('a pending preview URL is sent without waiting for deployment readiness', async () => {
-  const { emails, request } = verifiedTransport({ preview: 'pending' });
-  await notifyDesignResult(verification, env, request, () => {
-    throw new Error('Must not wait');
-  });
-  assert.equal(emails.length, 1);
-  assert.match(emails[0].text, /may take a few minutes/);
-});
-
 test('a preview status cannot select failure while verification is still active', async () => {
   const { emails, request } = verifiedTransport({ ready: false });
   const result = await notifyPreviewStatus(

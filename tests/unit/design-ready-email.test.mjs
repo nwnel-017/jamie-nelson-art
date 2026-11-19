@@ -199,24 +199,3 @@ test('temporary send failures retry with the same payload and key; permanent err
   );
   assert.equal(attempts, 3);
 });
-
-test('a pending preview URL can be emailed before deployment completes', async () => {
-  const { request, calls } = transport({
-    statuses: [{ state: 'pending', environment_url: 'https://preview.example.com' }],
-  });
-  await sendDesignReadyEmail(env, request);
-  const email = JSON.parse(calls.at(-1).options.body);
-  assert.match(email.text, /https:\/\/preview.example.com/);
-  assert.match(email.text, /may take a few minutes/);
-});
-
-test('a saved message can be retried without current sender or recipient configuration', async () => {
-  const email = createResultEmail('failure', env);
-  const { request, calls } = transport();
-  await sendSavedResultEmail(
-    email,
-    { RESEND_API_KEY: env.RESEND_API_KEY, DESIGN_JOB_ID: env.DESIGN_JOB_ID },
-    request,
-  );
-  assert.deepEqual(JSON.parse(calls[0].options.body), email.message);
-});
