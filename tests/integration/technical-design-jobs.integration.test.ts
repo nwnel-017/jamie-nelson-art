@@ -2,6 +2,25 @@
 import { afterEach, test, vi } from "vitest";
 
 import assert from "node:assert/strict";
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  rmSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import {
+  notifyDesignResult,
+  notifyPreviewStatus,
+} from "../../scripts/notify-design-result.mjs";
+import {
+  getResultEmail,
+  saveResultEmail,
+  markResultEmailSent,
+} from "../../server/services/design-result-email.service";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { HandoffError } from "../../server/utils/agent/errors";
@@ -15,6 +34,7 @@ import {
   reserveTechnicalDesignJob,
   markTechnicalJobDispatched,
   claimTechnicalDesignJob,
+  failTechnicalDesignJob,
   reconcileTechnicalDesignRun,
   finishTechnicalDesignJob,
   getTechnicalDesignJobForDraft,
@@ -587,3 +607,256 @@ test("approval dispatches a ready draft once and records the GitHub run ID", asy
     await client.from("design_requests").delete().eq("id", request.id);
   }
 });
+
+const implementationInstructions = {
+  objective: "Make gallery blue",
+  tasks: [
+    {
+      id: "theme",
+      description: "Update gallery theme",
+      files: ["app/pages/gallery.vue"],
+      acceptance_criteria: ["Gallery is blue"],
+    },
+  ],
+  verification_steps: ["Run npm run build"],
+  constraints: [],
+  blockers: [],
+};
+
+function implementGallery() {
+  const directory = mkdtempSync(join(tmpdir(), "design-implementation-"));
+  const source = join(directory, "source");
+  const input = join(directory, "technical-design-job");
+  const git = (...args: string[]) =>
+    execFileSync("git", args, { cwd: source, encoding: "utf8" });
+  try {
+    mkdirSync(join(source, "app/pages"), { recursive: true });
+    mkdirSync(input);
+    writeFileSync(
+      join(input, "technical-instructions.json"),
+      JSON.stringify(implementationInstructions),
+    );
+    execFileSync(
+      process.execPath,
+      [resolve("scripts/prepare-design-execution.mjs")],
+      {
+        env: {
+          ...process.env,
+          RUNNER_TEMP: directory,
+          GITHUB_WORKSPACE: directory,
+          TECHNICAL_EXECUTION_PROMPT_FILE: resolve(
+            "server/utils/agent/prompts/execute-technical-instructions.ts",
+          ),
+        },
+      },
+    );
+    git("init", "--quiet");
+    git("config", "user.name", "Integration Test");
+    git("config", "user.email", "test@example.test");
+    writeFileSync(
+      join(source, "app/pages/gallery.vue"),
+      "<template>Gallery</template>\n",
+    );
+    git("add", ".");
+    git("commit", "--quiet", "-m", "Base gallery");
+    // Deterministic agent output; the real patch validator and commit steps still run.
+    writeFileSync(
+      join(source, "app/pages/gallery.vue"),
+      '<template><main class="blue">Gallery</main></template>\n',
+    );
+    const patch = join(directory, "changes.patch");
+    writeFileSync(patch, git("diff", "--binary"));
+    git("restore", ".");
+    execFileSync(
+      process.execPath,
+      [resolve("scripts/validate-design-patch.mjs"), patch],
+      { cwd: source },
+    );
+    git("commit", "--quiet", "-m", "Implement approved gallery");
+    assert.match(git("show", "HEAD:app/pages/gallery.vue"), /class="blue"/);
+    assert.match(
+      readFileSync(join(input, "execution-prompt.txt"), "utf8"),
+      /Make gallery blue/,
+    );
+    return git("rev-parse", "HEAD").trim();
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+for (const outcome of ["ready", "failure"] as const) {
+  test(`approved technical job completes its ${outcome} flow and alerts the admin once`, async () => {
+    const client = localClient();
+    const userId = `email-flow-${randomUUID()}`;
+    const design = await createDesignRequest(client, userId);
+    const config = {
+      token: "test-token",
+      repository: "owner/repository",
+      repositoryId: "123",
+      workflowRef: "master",
+      sourceRef: "master",
+      backendUrl: "https://backend.example",
+      model: "test-model",
+      promptVersion: "technical-instructions-v1",
+    };
+    const originalFetch = globalThis.fetch;
+    const json = (value: unknown) => new Response(JSON.stringify(value));
+    let designSha = "a".repeat(40);
+    let jobId = "";
+    let previewAvailable = false;
+    const emails: Array<{ to: string[]; text: string }> = [];
+    const notificationEnv = {
+      GITHUB_REPOSITORY: config.repository,
+      GH_TOKEN: "github-token",
+      ADMIN_EMAIL: "admin@example.test",
+      RESEND_API_KEY: "test-key",
+      RESEND_FROM_EMAIL: "updates@example.test",
+      TECHNICAL_JOBS_BACKEND_URL: config.backendUrl,
+      ACTIONS_ID_TOKEN_REQUEST_URL: "https://oidc.example/token",
+      ACTIONS_ID_TOKEN_REQUEST_TOKEN: "oidc-token",
+    };
+    const request = async (
+      input: RequestInfo | URL,
+      options?: RequestInit,
+    ): Promise<Response> => {
+      const url = new URL(String(input));
+      if (url.hostname === "oidc.example")
+        return json({ value: "signed-test-identity" });
+      if (url.hostname === "backend.example") {
+        assert.equal(url.pathname, `/api/agent/technical-jobs/${jobId}/email`);
+        const body = JSON.parse(String(options?.body));
+        if (body.action === "save")
+          return json(await saveResultEmail(client, jobId, body.email));
+        if (body.action === "sent")
+          return json(await markResultEmailSent(client, jobId));
+        return json(await getResultEmail(client, jobId));
+      }
+      if (url.hostname === "api.resend.com") {
+        emails.push(JSON.parse(String(options?.body)));
+        return json({ id: "sent-integration-email" });
+      }
+      if (url.hostname !== "api.github.com")
+        throw new Error(`Unexpected external request: ${url.origin}`);
+      if (url.pathname.endsWith("/dispatches"))
+        return json({ workflow_run_id: 789 });
+      if (url.pathname.endsWith("/jobs"))
+        return json({
+          jobs: [
+            {
+              name: outcome === "ready" ? "ready" : "plan",
+              conclusion: outcome === "ready" ? "success" : "failure",
+            },
+          ],
+        });
+      if (url.pathname.endsWith("/pulls/17"))
+        return json({
+          state: "open",
+          head: { sha: designSha, ref: `agent/design-${design.id}` },
+        });
+      if (
+        url.pathname.endsWith("/statuses") &&
+        url.pathname.includes("/commits/")
+      )
+        return json([
+          {
+            context: "design-verification",
+            state: "success",
+            target_url: "https://github.com/owner/repository/actions/runs/900",
+          },
+        ]);
+      if (url.pathname.endsWith("/deployments"))
+        return json(
+          previewAvailable
+            ? [{ id: 1, sha: designSha, environment: "Preview" }]
+            : [],
+        );
+      if (url.pathname.endsWith("/deployments/1/statuses"))
+        return json([
+          {
+            state: "pending",
+            environment_url: "https://gallery-preview.vercel.app",
+          },
+        ]);
+      if (url.pathname.endsWith("/actions/runs/900")) return json(completedRun);
+      if (url.pathname.includes("/commits/"))
+        return json({ sha: "e".repeat(40) });
+      throw new Error(`Unexpected GitHub request: ${url.pathname}`);
+    };
+    const completedRun = {
+      id: outcome === "ready" ? 900 : 789,
+      head_sha: "e".repeat(40),
+      run_attempt: 1,
+      event: "workflow_dispatch",
+      status: "completed",
+      head_branch: "master",
+      conclusion: outcome === "ready" ? "success" : "failure",
+      path:
+        outcome === "ready"
+          ? ".github/workflows/verify-design-pr.yml"
+          : ".github/workflows/generate-technical-instructions.yml",
+      display_title: "",
+    };
+    try {
+      await createReadyDraft(client, design.id, userId);
+      vi.spyOn(globalThis, "fetch").mockImplementation((input, options) =>
+        String(input).startsWith("https://api.github.com/")
+          ? request(input, options)
+          : originalFetch(input, options),
+      );
+      const approval = await executeDesignRequest(
+        client,
+        design.id,
+        userId,
+        config,
+      );
+      jobId = approval.jobId;
+      const worker = { runId: "789", runAttempt: 1 };
+      assert.equal(
+        (await claimTechnicalDesignJob(client, jobId, worker)).claimed,
+        true,
+      );
+      if (outcome === "ready") {
+        await finishTechnicalDesignJob(
+          client,
+          jobId,
+          worker,
+          implementationInstructions,
+        );
+        designSha = implementGallery();
+        completedRun.display_title = `Verify design PR #17 (repair 0) job ${jobId}`;
+        // No URL yet: notification waits for a deployment event, not a polling timer.
+        await notifyDesignResult(completedRun, notificationEnv, request);
+        assert.equal(emails.length, 0);
+        previewAvailable = true;
+        await notifyPreviewStatus(
+          { context: "Vercel", sha: designSha },
+          notificationEnv,
+          request,
+        );
+      } else {
+        await failTechnicalDesignJob(client, jobId, worker);
+        completedRun.display_title = `Technical design job ${jobId}`;
+        await notifyDesignResult(completedRun, notificationEnv, request);
+      }
+      assert.equal(emails.length, 1);
+      assert.deepEqual(emails[0]!.to, ["admin@example.test"]);
+      if (outcome === "ready") {
+        assert.match(emails[0]!.text, /https:\/\/gallery-preview.vercel.app/);
+        assert.match(emails[0]!.text, /may take a few minutes/);
+      } else {
+        assert.match(emails[0]!.text, /contact the developer/);
+        assert.match(emails[0]!.text, new RegExp(jobId));
+      }
+      const saved = await getResultEmail(client, jobId);
+      assert.ok(saved.email_sent_at);
+      await notifyDesignResult(completedRun, notificationEnv, request);
+      assert.equal(
+        emails.length,
+        1,
+        "replaying completion must not send another email",
+      );
+    } finally {
+      await client.from("design_requests").delete().eq("id", design.id);
+    }
+  });
+}
