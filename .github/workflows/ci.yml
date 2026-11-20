@@ -74,10 +74,6 @@ jobs:
           eval "$(supabase status -o env)"
           TEST_SUPABASE_URL="$API_URL" TEST_SUPABASE_ANON_KEY="$ANON_KEY" TEST_SUPABASE_SERVICE_KEY="$SERVICE_ROLE_KEY" npm run test:rls
           SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npm run test:integration
-      - name: Test requirements UI and API contract
-        shell: bash
-        run: |
-          eval "$(supabase status -o env)"
           SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npm run test:requirements:e2e
       - uses: actions/upload-artifact@v4
         if: failure()

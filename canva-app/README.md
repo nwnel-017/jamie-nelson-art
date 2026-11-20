@@ -63,19 +63,3 @@ database credentials are added to GitHub. Apply the new email-state migration
 before enabling the updated notification workflow. `DESIGN_PREVIEW_ENVIRONMENT` defaults to
 `Preview`. Set `DESIGN_WORKFLOW_REF` to the backend's configured planning workflow
 branch if it differs from `master`.
-
-### Requirements browser tests
-
-From the repository root, with local Supabase running and its migrations applied:
-
-```bash
-npm ci --prefix canva-app
-npx playwright install chromium
-npm run test:requirements:e2e
-```
-
-Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to the local instance (or put them in the root `.env`). Remote databases are rejected.
-
-The three Playwright Test flows cover follow-up clarification, an immediately ready plan, and manual retry after clarification failure. They render the production UI and call real API handlers against local Supabase. Only the Canva host, export download, and external model are simulated. Tests stop at review and clean up their own records and images.
-
-CI runs them in the existing Supabase job without automatic retries. Failed tests save traces to `test-results/requirements/`.
