@@ -186,7 +186,7 @@ test("an initially ready result shows Approve and approval clears the saved work
     }),
   );
   await screen.findByText(
-    "Your request has been queued. The agent will prepare a pull request for review.",
+    "Thank you for your input. Your agent is working to update your site. Please check your email inbox for a notification when the results are ready",
   );
   expect(loadWorkflow("test-scope")).toBeUndefined();
   await waitFor(() =>

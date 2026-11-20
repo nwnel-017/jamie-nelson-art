@@ -38,9 +38,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            canva-app/package-lock.json
       - run: npm ci
       - run: npm run check
       - run: npm test
+      - run: npm ci --prefix canva-app
+      - run: npm test --prefix canva-app -- --ci
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
@@ -61,11 +66,19 @@ jobs:
       - uses: supabase/setup-cli@v3
       - run: supabase start -x realtime,imgproxy,postgres-meta
       - run: supabase db reset
+      - run: npm ci --prefix canva-app
+      - run: npx playwright install --with-deps chromium
       - name: Test table policies and design workflow
         shell: bash
         run: |
           eval "$(supabase status -o env)"
           TEST_SUPABASE_URL="$API_URL" TEST_SUPABASE_ANON_KEY="$ANON_KEY" TEST_SUPABASE_SERVICE_KEY="$SERVICE_ROLE_KEY" npm run test:rls
           SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npm run test:integration
+          SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npm run test:requirements:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: requirements-browser-traces
+          path: test-results/requirements/
       - if: always()
         run: supabase stop --no-backup

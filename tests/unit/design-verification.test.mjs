@@ -22,14 +22,21 @@ test('verification checks are mandatory and model execution is isolated from pub
   assert.equal(ci.includes('if [['), false);
   assert.deepEqual(jobs.review.permissions, { contents: 'read' });
   assert.deepEqual(jobs.repair.permissions, { contents: 'read' });
-  assert.equal(jobs['notify-admin'].permissions.deployments, 'read');
-  assert.equal(jobs['notify-admin'].steps.at(-1).env.DESIGN_PREVIEW_URL, undefined);
+  const notification = parse(readFileSync(new URL('../../.github/workflows/notify-design-result.yml', import.meta.url), 'utf8'));
+  assert.deepEqual(notification.on.workflow_run.types, ['completed']);
+  assert.deepEqual(notification.on.workflow_run.workflows, ['Generate technical design instructions', 'Verify design pull request']);
+  assert.equal(notification.jobs.notify.permissions.deployments, 'read');
+  assert.equal(notification.jobs.notify.permissions['id-token'], 'write');
+  assert.equal(notification.jobs.notify.permissions.statuses, 'read');
+  assert.ok(Object.hasOwn(notification.on, 'status'));
+  assert.equal(notification.jobs.notify.steps[0].with.ref, '${{ github.workflow_sha }}');
+  assert.equal(workflow.concurrency['cancel-in-progress'], false);
 });
 
 test('notification requires clean checks, clean review, and no repair publication', () => {
-  assert.equal(condition(jobs['notify-admin'].if), true);
+  assert.equal(condition(jobs.ready.if), true);
   for (const changes of [{ checks: { outputs: { passed: 'false' } } }, { review: { outputs: { findings: '1' } } }, { review: { result: 'failure' } }, { repair: { result: 'success' } }, { 'publish-repair': { result: 'failure' } }]) {
-    assert.equal(condition(jobs['notify-admin'].if, state(changes)), false);
+    assert.equal(condition(jobs.ready.if, state(changes)), false);
   }
 });
 

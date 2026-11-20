@@ -31,6 +31,8 @@ export type Database = {
           status: string
           github_run_id: string | null
           github_run_attempt: number | null
+          result_email: Json | null
+          email_sent_at: string | null
           technical_instructions: Json | null
           error: string | null
           created_at: string
@@ -48,6 +50,8 @@ export type Database = {
           status?: string
           github_run_id?: string | null
           github_run_attempt?: number | null
+          result_email?: Json | null
+          email_sent_at?: string | null
           technical_instructions?: Json | null
           error?: string | null
           created_at?: string
@@ -65,6 +69,8 @@ export type Database = {
           status?: string
           github_run_id?: string | null
           github_run_attempt?: number | null
+          result_email?: Json | null
+          email_sent_at?: string | null
           technical_instructions?: Json | null
           error?: string | null
           created_at?: string
