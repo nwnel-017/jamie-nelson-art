@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { test as base, expect, type Page } from "@playwright/test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -6,6 +7,7 @@ import { pathToFileURL } from "node:url";
 import type {
   DesignRequest,
   DraftAnalysis,
+  DesignImage,
 } from "../../server/utils/agent/design-request";
 import type { RequirementsServer } from "../helpers/requirements-server";
 import { buildRequirementsHarness } from "../helpers/requirements-browser.mjs";
@@ -237,4 +239,164 @@ test("failed clarification preserves answers and the draft, then retries the sam
     },
   ]);
   expect(afterRetry[2]!.submission_id).not.toBe(afterRetry[1]!.submission_id);
+});
+
+const imageInitial: DraftAnalysis = {
+  ...initial,
+  response: "Please supply the logo for the design.",
+  ambiguities: ["The exact logo is required"],
+  clarifying_questions: [{ type: "image", question: "Upload the logo" }],
+};
+async function uploadImage(page: Page, requestId: string, filename: string) {
+  const bytes = await sharp({
+    create: { width: 2, height: 3, channels: 4, background: "blue" },
+  })
+    .png()
+    .toBuffer();
+  const result = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === `/api/agent/images/${requestId}`,
+  );
+  await page
+    .locator('input[type="file"]')
+    .setInputFiles({ name: filename, mimeType: "image/png", buffer: bytes });
+  const response = await result;
+  expect(response.status()).toBe(200);
+  const { image } = (await response.json()) as { image: DesignImage };
+  await expect(page.getByText(filename, { exact: true })).toBeVisible();
+  return { image, bytes };
+}
+
+test("required images can be uploaded and replaced with an optional note", async ({
+  page,
+  app,
+}) => {
+  app.setResponses([imageInitial, ready]);
+  const request = await submitDesign(page);
+  await expect(page.getByText(/publicly accessible/)).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Optional note" })
+    .fill("Use in header");
+  await expect(
+    page.getByRole("button", { name: "Submit", exact: true }),
+  ).toBeDisabled();
+  await uploadImage(page, request.id, "logo.png");
+  await expect(page.getByRole("img")).toHaveCount(0);
+  const { image, bytes } = await uploadImage(
+    page,
+    request.id,
+    "replacement.png",
+  );
+  await expect(page.getByText("logo.png", { exact: true })).toHaveCount(0);
+  const publicImage = await page.request.get(image.url);
+  expect(publicImage.ok()).toBe(true);
+  expect(await publicImage.body()).toEqual(bytes);
+  expect((await submitAnswers(page, request.id)).status()).toBe(200);
+  await expectReview(page);
+  expect((await history(app, request.id))[1]).toMatchObject({
+    answers: [
+      {
+        question_id: request.draft!.clarifying_questions[0]!.id,
+        answer: "Use in header",
+        image: { id: image.id, filename: "replacement.png", url: image.url },
+      },
+    ],
+  });
+});
+
+test("a suitability concern lets the user explicitly keep the uploaded image", async ({
+  page,
+  app,
+}) => {
+  app.setResponses([imageInitial]);
+  const request = await submitDesign(page);
+  const { image } = await uploadImage(page, request.id, "portrait.png");
+  const concern = "This image needs heavy cropping for the banner.";
+  app.setResponses([
+    {
+      ...initial,
+      response: "Please review the supplied image.",
+      ambiguities: [concern],
+      clarifying_questions: [
+        {
+          type: "image",
+          question: "Keep this image or upload a replacement?",
+          image_id: image.id,
+          concern,
+        },
+      ],
+    },
+    ready,
+  ]);
+  expect((await submitAnswers(page, request.id)).status()).toBe(200);
+  await expect(page.getByText(concern, { exact: true })).toBeVisible();
+  await expect(page.getByText("portrait.png", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Submit", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole("button", { name: "Keep this image anyway", exact: true })
+    .click();
+  expect((await submitAnswers(page, request.id)).status()).toBe(200);
+  await expectReview(page);
+  const saved = await history(app, request.id);
+  expect(saved[2]).toMatchObject({
+    answers: [
+      { image: { id: image.id } },
+      {
+        question_id: image.question_id,
+        image: { id: image.id },
+        keep_anyway: true,
+        concern,
+      },
+    ],
+  });
+});
+
+test("mixed questions keep each uploaded image associated with its answer", async ({
+  page,
+  app,
+}) => {
+  app.setResponses([
+    {
+      ...initial,
+      clarifying_questions: [
+        { type: "image", question: "Upload the logo" },
+        "Which page?",
+        { type: "image", question: "Upload the portrait" },
+      ],
+    },
+    ready,
+  ]);
+  const request = await submitDesign(page);
+  const { image: logo } = await uploadImage(page, request.id, "logo.png");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Which page?", exact: true })
+    .fill("/artworks/gallery");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Submit", exact: true }),
+  ).toBeDisabled();
+  const { image: portrait } = await uploadImage(
+    page,
+    request.id,
+    "portrait.png",
+  );
+  expect((await submitAnswers(page, request.id)).status()).toBe(200);
+  await expectReview(page);
+  const questions = request.draft!.clarifying_questions;
+  expect((await history(app, request.id))[1]).toMatchObject({
+    answers: [
+      {
+        question_id: questions[0]!.id,
+        image: { id: logo.id, filename: "logo.png" },
+      },
+      { question_id: questions[1]!.id, answer: "/artworks/gallery" },
+      {
+        question_id: questions[2]!.id,
+        image: { id: portrait.id, filename: "portrait.png" },
+      },
+    ],
+  });
 });
