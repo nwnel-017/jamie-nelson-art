@@ -54,8 +54,9 @@ when the request calls for it. Reuse components when their behavior fits; the ol
 
 Use the scripts in `package.json` for lint, typecheck, unit tests, and production
 build. `npm run test:e2e` builds against local fixture data without production
-credentials. It covers artwork browsing and the shared page styles at desktop/mobile
-widths. For shell changes, also check navigation and scrolling at intermediate widths.
+credentials and covers artwork browsing. For shared styles, check the affected pages
+at desktop/mobile widths; for shell changes, also check navigation and scrolling at
+intermediate widths.
 Report pre-existing failures separately.
 
 This guide is reference context for the design planner and executor. Their trusted

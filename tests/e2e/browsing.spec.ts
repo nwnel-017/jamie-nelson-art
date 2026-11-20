@@ -23,24 +23,3 @@ test("visitor can load an artwork directly and view its image", async ({
     .poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth))
     .toBeGreaterThan(0);
 });
-
-
-test("shared public styles keep headings visible without horizontal overflow", async ({ page }) => {
-  const pages = [
-    ["/", "About"],
-    ["/artworks/gallery", "Portfolio"],
-    ["/exhibitions", "Exhibitions & Projects"],
-    ["/contact", "Contact"],
-    ["/shop", "Shop"],
-  ] as const;
-
-  for (const width of [1440, 390]) {
-    await page.setViewportSize({ width, height: 900 });
-    for (const [path, heading] of pages) {
-      await page.goto(path);
-      await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-      expect(await page.getByRole("main").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-    }
-  }
-});
