@@ -949,7 +949,7 @@ test("local test access still verifies the Canva token and returns the actual ow
   );
 });
 
-test("gathering preserves a structured image question in the saved draft", async () => {
+test("gathering deduplicates image questions while preserving their upload type", async () => {
   const { client } = gatherDatabase();
   const saved = await gatherRequirements(client, "owner", gatherInput(), {
     limit: 4,
@@ -959,11 +959,13 @@ test("gathering preserves a structured image question in the saved draft", async
           ...verification,
           clarifying_questions: [
             { type: "image", question: "Upload the exact logo for the header" },
+            { type: "image", question: "Upload the exact logo for the header" },
           ],
         }),
       }),
     },
   });
+  assert.equal(saved.draft?.clarifying_questions.length, 1);
   assert.equal(saved.draft?.clarifying_questions[0]?.type, "image");
   assert.equal(
     saved.draft?.clarifying_questions[0]?.question,

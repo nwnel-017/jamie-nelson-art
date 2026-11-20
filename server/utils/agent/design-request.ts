@@ -86,7 +86,7 @@ export const questionSchema = z.union([
     ),
 ]);
 const questions = z.array(questionSchema).max(100);
-export function questionText(q: z.infer<typeof questionSchema>): string {
+export function questionText(q: string | { question: string }): string {
   return typeof q === "string" ? q : q.question;
 }
 
@@ -140,11 +140,14 @@ export const draftAnalysisSchema = z
 export type DraftAnalysis = z.infer<typeof draftAnalysisSchema>;
 
 export type VerificationResult = z.infer<typeof verificationResultSchema>;
-export type DesignRequestInput = VerificationResult & {
+export interface DesignRequest {
   design_image: string;
   instructions: string;
-};
-export type DesignRequest = Omit<DesignRequestInput, "clarifying_questions"> & {
+  response: string;
+  requirements: string[];
+  ambiguities: string[];
+  ready?: boolean;
+  plan?: DesignPlan;
   clarifying_questions: string[];
   id: string;
   analyze_attempts?: number;
@@ -157,7 +160,7 @@ export type DesignRequest = Omit<DesignRequestInput, "clarifying_questions"> & {
   clarified_at?: string | null;
   created_at: string;
   updated_at: string;
-};
+}
 export function parseVerificationResult(text: string): VerificationResult {
   try {
     if (text.length > 64 * 1024) throw new Error();

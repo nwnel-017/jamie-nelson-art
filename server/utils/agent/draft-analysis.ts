@@ -19,12 +19,13 @@ export function initialDraftAnalysis(
 
   let questions = result.clarifying_questions;
   if (!ready) {
-    questions = questions.filter(
-      (q, i) =>
-        questions.findIndex(
-          (other) => questionText(other) === questionText(q),
-        ) === i,
-    );
+    const seen = new Set<string>();
+    questions = questions.filter((question) => {
+      const text = questionText(question);
+      if (seen.has(text)) return false;
+      seen.add(text);
+      return true;
+    });
     if (questions.length === 0) {
       questions = [
         "Which exact pages or theme changes should this plan cover?",
