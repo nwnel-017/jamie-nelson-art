@@ -34,12 +34,12 @@ const formatPrice = (price: number) =>
 </script>
 
 <template>
-  <section class="artistShop" aria-labelledby="shop-heading">
-    <h1 id="shop-heading">Shop</h1>
-    <p v-if="error" class="statusMessage">
+  <section class="artistPage artistShop" aria-labelledby="shop-heading">
+    <h1 id="shop-heading" class="artistHeading">Shop</h1>
+    <p v-if="error" class="artistStatus">
       The shop could not be loaded. Please try again later.
     </p>
-    <p v-else-if="!shopArtworks.length" class="statusMessage">
+    <p v-else-if="!shopArtworks.length" class="artistStatus">
       New artworks are coming soon.
     </p>
     <ul v-else class="shopGrid">
@@ -95,27 +95,13 @@ const formatPrice = (price: number) =>
 
 <style scoped>
 .artistShop {
-  --headingSize: clamp(3rem, 3.8vw, 5rem);
+  --headingSize: var(--artist-heading-size);
   --headingGap: 2.5rem;
-  width: min(100% - 2rem, 120rem);
-  margin: 0 auto;
-  padding: 2.5rem 0 5rem;
 }
 
 .artistShop h1 {
   margin: 0 0 var(--headingGap);
-  color: var(--artist-gold);
-  font-size: var(--headingSize);
-  line-height: 1.1;
-  font-weight: 700;
   text-align: center;
-}
-
-.statusMessage {
-  margin: 0;
-  text-align: center;
-  font-size: clamp(1.125rem, 1.65vw, 2.125rem);
-  line-height: 1.2;
 }
 
 .shopGrid {
@@ -157,7 +143,7 @@ const formatPrice = (price: number) =>
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: clamp(1.125rem, 1.65vw, 2.125rem);
+  font-size: var(--artist-body-size);
   line-height: 1;
   text-align: center;
 }
@@ -212,7 +198,7 @@ const formatPrice = (price: number) =>
     --pagePadding: clamp(1.5rem, 2.5vw, 4rem);
     --columns: 2;
     --columnGap: 4vw;
-    --detailsSize: clamp(1.125rem, 1.65vw, 2.125rem);
+    --detailsSize: var(--artist-body-size);
     --rowHeight: max(
       22rem,
       100cqh - var(--headingSize) * 1.1 - var(--headingGap) -
@@ -224,9 +210,8 @@ const formatPrice = (price: number) =>
     );
     --detailsHeight: calc(var(--detailsSize) * 7.55 + 1.9vw);
     box-sizing: border-box;
-    width: min(81.5%, 120rem);
     height: 100%;
-    padding: var(--pagePadding) 0 0;
+    --artist-page-padding: var(--pagePadding) 0 0;
     container-type: size;
   }
 
