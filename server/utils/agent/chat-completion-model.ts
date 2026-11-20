@@ -81,6 +81,17 @@ export function createChatCompletionModel(
                       : {}),
                   }),
                 },
+                ...(input.images ?? []).flatMap((image) => [
+                  {
+                    type: "text",
+                    text: JSON.stringify({
+                      image_id: image.id,
+                      question_id: image.question_id,
+                      filename: image.filename,
+                    }),
+                  },
+                  { type: "image_url", image_url: { url: image.url } },
+                ]),
                 ...(input.image
                   ? [
                       {

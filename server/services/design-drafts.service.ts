@@ -1,3 +1,7 @@
+import {
+  latestImageAnswers,
+  questionText,
+} from "@server/utils/agent/design-request";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -193,13 +197,41 @@ export async function finishAnalysis(
   const priorIds = new Map(
     source?.clarifying_questions.map((q) => [q.question, q.id]) ?? [],
   );
+  const allAnswers = [...(source?.answers ?? []), ...answers];
+  const imageAnswers = latestImageAnswers(allAnswers);
+  const questionIdByImage = new Map(
+    imageAnswers.map((answer) => [answer.image.id, answer.question_id]),
+  );
   const payload = {
     ...analysis,
-    clarifying_questions: analysis.clarifying_questions.map((question) => ({
-      id: priorIds.get(question) ?? randomUUID(),
-      question,
-    })),
+    clarifying_questions: analysis.clarifying_questions.map((q) => {
+      const imageId = typeof q === "string" ? undefined : q.image_id;
+      if (imageId && !questionIdByImage.has(imageId))
+        throw new HandoffError(
+          502,
+          "The model referenced an unavailable image.",
+          "ANALYSIS_FAILED",
+        );
+      const question = questionText(q);
+      const previousId = imageId
+        ? questionIdByImage.get(imageId)
+        : priorIds.get(question);
+      return {
+        ...(typeof q === "string" ? {} : q),
+        id: previousId ?? randomUUID(),
+        question,
+      };
+    }),
   };
+  if (
+    new Set(payload.clarifying_questions.map((q) => q.id)).size !==
+    payload.clarifying_questions.length
+  )
+    throw new HandoffError(
+      502,
+      "The model returned duplicate questions for an image.",
+      "ANALYSIS_FAILED",
+    );
   const { data, error } = await supabase.rpc("finish_design_analysis", {
     p_request_id: requestId,
     p_user_id: userId,

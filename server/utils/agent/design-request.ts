@@ -24,14 +24,36 @@ export const planSchema = z
   );
 export type DesignPlan = z.infer<typeof planSchema>;
 export interface DraftQuestion {
+  type?: "text" | "image";
+  image_id?: string;
+  concern?: string;
   id: string;
   question: string;
 }
+export interface DesignImage {
+  id: string;
+  question_id: string;
+  filename: string;
+  url: string;
+}
 export interface DraftAnswer {
+  image?: DesignImage;
+  image_id?: string;
+  keep_anyway?: boolean;
+  concern?: string;
   question_id: string;
   question: string;
   answer: string;
 }
+export function latestImageAnswers(answers: DraftAnswer[]) {
+  const latest = new Map<string, DraftAnswer & { image: DesignImage }>();
+  for (const answer of answers) {
+    if (answer.image)
+      latest.set(answer.question_id, { ...answer, image: answer.image });
+  }
+  return [...latest.values()];
+}
+
 export interface DesignDraft {
   id: string;
   design_request_id: string;
@@ -47,12 +69,33 @@ export interface DesignDraft {
   created_at: string;
 }
 
+export const questionSchema = z.union([
+  z.string().trim().min(1).max(4000),
+  z
+    .object({
+      question: z.string().trim().min(1).max(4000),
+      type: z.enum(["text", "image"]),
+      image_id: z.uuid().optional(),
+      concern: z.string().trim().min(1).max(4000).optional(),
+    })
+    .strict()
+    .refine(
+      (q) =>
+        (!q.image_id && !q.concern) ||
+        (q.type === "image" && !!q.image_id && !!q.concern),
+    ),
+]);
+const questions = z.array(questionSchema).max(100);
+export function questionText(q: string | { question: string }): string {
+  return typeof q === "string" ? q : q.question;
+}
+
 export const verificationResultSchema = z
   .object({
     response: z.string().trim().min(1).max(1000),
     requirements: items,
     ambiguities: items,
-    clarifying_questions: items,
+    clarifying_questions: questions,
     ready: z.boolean().optional(),
     plan: planSchema.optional(),
   })
@@ -72,7 +115,7 @@ export const draftAnalysisSchema = z
     response: z.string().trim().min(1).max(1000),
     requirements: items,
     ambiguities: items,
-    clarifying_questions: items,
+    clarifying_questions: questions,
     plan: planSchema,
     ready: z.boolean(),
   })
@@ -90,18 +133,22 @@ export const draftAnalysisSchema = z
   )
   .refine(
     (value) =>
-      new Set(value.clarifying_questions).size ===
+      new Set(value.clarifying_questions.map(questionText)).size ===
       value.clarifying_questions.length,
     "Do not return duplicate questions",
   );
 export type DraftAnalysis = z.infer<typeof draftAnalysisSchema>;
 
 export type VerificationResult = z.infer<typeof verificationResultSchema>;
-export type DesignRequestInput = VerificationResult & {
+export interface DesignRequest {
   design_image: string;
   instructions: string;
-};
-export type DesignRequest = DesignRequestInput & {
+  response: string;
+  requirements: string[];
+  ambiguities: string[];
+  ready?: boolean;
+  plan?: DesignPlan;
+  clarifying_questions: string[];
   id: string;
   analyze_attempts?: number;
   change_options?: import("./handoff/validation").ChangeOption[];
@@ -113,7 +160,7 @@ export type DesignRequest = DesignRequestInput & {
   clarified_at?: string | null;
   created_at: string;
   updated_at: string;
-};
+}
 export function parseVerificationResult(text: string): VerificationResult {
   try {
     if (text.length > 64 * 1024) throw new Error();

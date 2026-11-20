@@ -1,7 +1,11 @@
+import { getClarificationImage } from "./design-images.service";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "#types/supabase/database";
 import type { AiModel } from "@server/utils/agent/ai-model";
-import type { DesignRequest } from "@server/utils/agent/design-request";
+import {
+  latestImageAnswers,
+  type DesignRequest,
+} from "@server/utils/agent/design-request";
 import { ClarificationAgent } from "@server/utils/agent/clarification-agent";
 import { HandoffError } from "@server/utils/agent/errors";
 import {
@@ -36,6 +40,17 @@ export async function clarifyDesignRequest(
       "STALE_DRAFT",
     );
   const answers = validateClarificationAnswers(input.answers, draft);
+  for (const answer of answers) {
+    if (!answer.image_id) continue;
+    const image = await getClarificationImage(supabase, id, answer.image_id);
+    if (image.question_id !== answer.question_id)
+      throw new HandoffError(
+        422,
+        "This image belongs to a different question.",
+        "INVALID_ANSWERS",
+      );
+    answer.image = image;
+  }
   const hash = submissionHash({ draft_version: input.draft_version, answers });
   const reservation = await reserveAnalysis(supabase, {
     requestId: id,
@@ -60,6 +75,9 @@ export async function clarifyDesignRequest(
       changeOptions: request.change_options ?? [],
       draft,
       answers,
+      images: latestImageAnswers([...draft.answers, ...answers]).map(
+        (a) => a.image,
+      ),
     });
     return await finishAnalysis(supabase, {
       requestId: id,

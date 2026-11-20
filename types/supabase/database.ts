@@ -14,6 +14,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      design_images: {
+        Row: { id: string; design_request_id: string; question_id: string; filename: string; storage_path: string; mime_type: string; created_at: string }
+        Insert: { id: string; design_request_id: string; question_id: string; filename: string; storage_path: string; mime_type: string; created_at?: string }
+        Update: { filename?: string }
+        Relationships: [{ foreignKeyName: "design_images_design_request_id_fkey"; columns: ["design_request_id"]; isOneToOne: false; referencedRelation: "design_requests"; referencedColumns: ["id"] }]
+      }
       technical_design_jobs: {
         Row: {
           id: string

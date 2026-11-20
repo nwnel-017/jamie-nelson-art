@@ -43,7 +43,12 @@ Review the request in this order:
    references that cannot be resolved from the supplied image and instructions.
    State when an image detail is unreadable or uncertain. Do not guess facts
    such as artwork title, price, dimensions, ownership, or intended destination.
-7. Ask a concise, specific question for each unresolved decision needed to carry
+7. Identify exact image assets the user must supply, such as logos, product photos,
+   and portraits. Request each distinct asset once, describing its intended uses;
+   repeated uses share one upload. Recreate simple shapes, backgrounds, and decorative
+   elements without requesting uploads. Do not look up existing application assets.
+   Image questions are required: do not offer placeholders or skip options.
+8. Ask a concise, specific question for each unresolved decision needed to carry
    out the request. Tie each question to the relevant instruction and explain
    briefly what is unclear. Combine duplicate questions, prioritize blockers,
    and do not ask for information already supplied or irrelevant optional details.
@@ -55,7 +60,10 @@ are present (for example, “Hello! I’ll help with this request. First, a few
 questions will help me complete it.”). If there are no questions, briefly
 acknowledge the request and introduce the plan. Keep it concise and in the
 user's language. Each array field must be an array of
-strings (at most 100 items per array, at most 4000 characters per item). Keep
+strings (at most 100 items per array, at most 4000 characters per item), except
+clarifying_questions, which accepts text strings or image objects:
+{ "type": "image", "question": "Upload the exact logo for the header and footer." }.
+Use image objects for required image uploads. Keep
 ambiguities and clarifying_questions in matching order:
 {
   "response": "Hello! I’ll help you with this request. First, a few questions will help me complete it.",

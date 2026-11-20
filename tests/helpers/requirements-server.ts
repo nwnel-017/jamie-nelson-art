@@ -10,6 +10,8 @@ export async function startRequirementsServer(output: string) {
   Object.assign(globalThis, {
     defineEventHandler: h3.defineEventHandler,
     setHeader: h3.setHeader,
+    getHeader: h3.getHeader,
+    getQuery: h3.getQuery,
     useRuntimeConfig: () => ({
       canvaAppId: "requirements-e2e",
       canvaAllowedUserIds: owner,
@@ -31,6 +33,8 @@ export async function startRequirementsServer(output: string) {
     await import("../../server/api/agent/gather-requirements/index.post");
   const { default: clarify } =
     await import("../../server/api/agent/clarify-requirements/[id].post");
+  const { default: upload } =
+    await import("../../server/api/agent/images/[id].post");
   const router = h3
     .createRouter()
     .get(
@@ -41,7 +45,8 @@ export async function startRequirementsServer(output: string) {
       ),
     )
     .post("/api/agent/gather-requirements", gather)
-    .post("/api/agent/clarify-requirements/:id", clarify);
+    .post("/api/agent/clarify-requirements/:id", clarify)
+    .post("/api/agent/images/:id", upload);
   for (const file of await readdir(output)) {
     if (!/\.(js|css)$/.test(file)) continue;
     router.get(
@@ -75,9 +80,21 @@ export async function startRequirementsServer(output: string) {
       );
       const saved = await client
         .from("design_requests")
-        .select("design_image")
+        .select("id, design_image")
         .eq("canva_user_id", owner);
       if (saved.error) throw saved.error;
+      const requestIds = (saved.data ?? []).map((request) => request.id);
+      const assetPaths: string[] = [];
+      if (requestIds.length) {
+        const assets = await client
+          .from("design_images")
+          .select("storage_path")
+          .in("design_request_id", requestIds);
+        if (assets.error) throw assets.error;
+        assetPaths.push(
+          ...(assets.data ?? []).map((image) => image.storage_path),
+        );
+      }
       const removed = await client
         .from("design_requests")
         .delete()
@@ -91,6 +108,12 @@ export async function startRequirementsServer(output: string) {
           .from("website_designs")
           .remove(paths);
         if (images.error) throw images.error;
+      }
+      if (assetPaths.length) {
+        const assets = await client.storage
+          .from("design_images")
+          .remove(assetPaths);
+        if (assets.error) throw assets.error;
       }
     },
   };
