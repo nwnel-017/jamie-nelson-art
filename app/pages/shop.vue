@@ -210,7 +210,6 @@ const formatPrice = (price: number) =>
     );
     --detailsHeight: calc(var(--detailsSize) * 7.55 + 1.9vw);
     box-sizing: border-box;
-    --artist-page-width: 81.5%;
     height: 100%;
     --artist-page-padding: var(--pagePadding) 0 0;
     container-type: size;

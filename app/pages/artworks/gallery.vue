@@ -88,7 +88,6 @@ const portfolioArtworks = computed(
 
 @media (min-width: 768px) {
   .artistPortfolio {
-    --artist-page-width: 81.5%;
     --artist-page-padding: 3vw 0 10vw;
   }
 

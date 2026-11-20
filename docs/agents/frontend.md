@@ -25,9 +25,11 @@ The current public site uses `app/layouts/artist.vue`:
   owns brand colors, heading/body size tokens, and shared page/heading/status classes.
   Its rules are contained beneath `.artistSite`.
 - **Page layout:** scoped page CSS owns grids, image sizing, alignment, heading margins,
-  and exceptions. `artistPage` supplies common width, margin, and padding;
-  `--artist-page-width`, `--artist-content-max`, and `--artist-page-padding` let pages
-  preserve their different dimensions. `artistHeading` supplies common typography;
+  and exceptions. `artistPage` supplies an 80rem maximum width, centered margins,
+  and side gutters of 1rem below 768px and 2rem above. Exhibitions uses a narrower
+  72rem maximum for its text-heavy content. Set page-specific `max-width` directly
+  when needed; `--artist-page-padding` controls vertical padding.
+  `artistHeading` supplies common typography;
   `artistStatus` styles empty/error messages.
 - **Data:** reuse existing composables and API routes. Page-specific fetching and
   existing image-loading behavior can stay with the page.

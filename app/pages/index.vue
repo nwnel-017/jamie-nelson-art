@@ -57,8 +57,6 @@ const bioParagraphs = computed(() => {
 
 <style scoped>
 .artistAbout {
-  --artist-page-width: 88.5%;
-  --artist-content-max: 72rem;
   display: flow-root;
 }
 
@@ -137,7 +135,6 @@ const bioParagraphs = computed(() => {
 
 @media (min-width: 1024px) {
   .artistAbout {
-    --artist-content-max: 120rem;
     display: grid;
     grid-template-columns: minmax(0, 36.25%) minmax(0, 1fr);
     gap: 6.3vw;

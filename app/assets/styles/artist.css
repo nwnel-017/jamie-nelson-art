@@ -3,11 +3,11 @@
   --artist-blue: #2d4050;
   --artist-heading-size: clamp(3rem, 3.8vw, 5rem);
   --artist-body-size: clamp(1.125rem, 1.65vw, 2.125rem);
-  --artist-content-max: 120rem;
 }
 
-.artistSite .artistPage {
-  width: min(var(--artist-page-width, 100% - 2rem), var(--artist-content-max));
+:where(.artistSite) .artistPage {
+  width: calc(100% - 2rem);
+  max-width: 80rem;
   margin: 0 auto;
   padding: var(--artist-page-padding, 2.5rem 0 5rem);
 }
@@ -24,4 +24,10 @@
   text-align: center;
   font-size: var(--artist-body-size);
   line-height: 1.2;
+}
+
+@media (min-width: 768px) {
+  :where(.artistSite) .artistPage {
+    width: calc(100% - 4rem);
+  }
 }

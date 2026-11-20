@@ -193,6 +193,10 @@ function dateParts(entry: Entry) {
 </template>
 
 <style scoped>
+.artistExhibitions {
+  max-width: 72rem;
+}
+
 .artistExhibitions h1 {
   margin: 0 0 2rem;
   text-align: center;
@@ -289,7 +293,6 @@ a.entryTitle:focus-visible {
 
 @media (min-width: 768px) {
   .artistExhibitions {
-    --artist-page-width: 76%;
     --artist-page-padding: 2.8vw 0 3.5vw;
   }
 

@@ -36,7 +36,6 @@ useSeoMeta({
 
 <style scoped>
 .artistContact {
-  --artist-page-width: 88.5%;
   min-height: 100%;
   display: grid;
   gap: 4rem;
