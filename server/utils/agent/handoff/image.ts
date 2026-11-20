@@ -218,3 +218,61 @@ export async function validatePng(
     );
   }
 }
+
+export async function validateUploadedImage(
+  bytes: Uint8Array,
+): Promise<"png" | "jpeg" | "webp"> {
+  if (bytes.byteLength > MAX_IMAGE_BYTES)
+    throw new HandoffError(
+      413,
+      "Image exceeds the 5 MB limit. Please upload a smaller image.",
+    );
+  let format: "png" | "jpeg" | "webp";
+  try {
+    const buffer = Buffer.from(bytes);
+    if (
+      buffer
+        .subarray(0, 8)
+        .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) &&
+      buffer.length >= 24
+    ) {
+      await validatePng(buffer, {
+        widthPx: buffer.readUInt32BE(16),
+        heightPx: buffer.readUInt32BE(20),
+      });
+      format = "png";
+    } else {
+      const image = sharp(bytes, {
+        failOn: "warning",
+        limitInputPixels: MAX_IMAGE_PIXELS,
+      });
+      const metadata = await image.metadata();
+      if (
+        metadata.format !== "png" &&
+        metadata.format !== "jpeg" &&
+        metadata.format !== "webp"
+      )
+        throw new HandoffError(415, "Upload a PNG, JPEG, or WebP image.");
+      if (
+        !metadata.width ||
+        !metadata.height ||
+        metadata.width > MAX_IMAGE_DIMENSION ||
+        metadata.height > MAX_IMAGE_DIMENSION ||
+        (metadata.pages ?? 1) !== 1
+      )
+        throw new HandoffError(
+          422,
+          "Image dimensions or animation are not supported.",
+        );
+      await image.raw().toBuffer();
+      format = metadata.format;
+    }
+  } catch (error) {
+    if (error instanceof HandoffError) throw error;
+    throw new HandoffError(
+      422,
+      "The image is invalid or exceeds decoding limits. Upload a valid PNG, JPEG, or WebP image.",
+    );
+  }
+  return format;
+}

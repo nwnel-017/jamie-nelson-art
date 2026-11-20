@@ -7,6 +7,7 @@ export interface AiModelInput {
   changeOptions: ChangeOption[];
   draft?: import("./design-request").DesignDraft;
   answers?: import("./design-request").DraftAnswer[];
+  images?: import("./design-request").DesignImage[];
   image?: {
     bytes: Uint8Array;
     mimeType: "image/png";
