@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import "~/assets/styles/artist.css";
 import Instagram from "~/assets/icons/instagram.svg";
 
 const menuOpen = ref(false);

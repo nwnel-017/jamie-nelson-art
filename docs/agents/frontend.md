@@ -21,9 +21,9 @@ The current public site uses `app/layouts/artist.vue`:
 ## Choose the owner
 
 - **Shell:** `app/layouts/artist.vue` owns navigation, footer, and content scrolling.
-- **Shared presentation:** `app/assets/styles/artist.css`, imported by that layout,
-  owns brand colors, heading/body size tokens, and shared page/heading/status classes.
-  Its rules are contained beneath `.artistSite`.
+- **Shared presentation:** `app/assets/styles/main.css`, loaded globally by Nuxt,
+  contains app-wide foundations and the public site's brand colors, heading/body size
+  tokens, and shared page/heading/status classes. Public rules stay beneath `.artistSite`.
 - **Page layout:** scoped page CSS owns grids, image sizing, alignment, heading margins,
   and exceptions. `artistPage` supplies an 80rem maximum width, centered margins,
   and side gutters of 1rem below 768px and 2rem above. Exhibitions uses a narrower
