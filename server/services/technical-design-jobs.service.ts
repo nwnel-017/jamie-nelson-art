@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "#types/supabase/database";
 import { HandoffError } from "@server/utils/agent/errors";
-import { parseTechnicalInstructions } from "@server/utils/agent/planning/technical-instructions";
 
 type Client = SupabaseClient<Database>;
 export type TechnicalDesignJob =
@@ -18,7 +17,7 @@ export async function getTechnicalDesignJobForDraft(
     .eq("design_analysis_id", analysisId)
     .maybeSingle();
   if (error)
-    throw new HandoffError(500, "Could not load the technical planning job.");
+    throw new HandoffError(500, "Could not load the design implementation job.");
   return data;
 }
 
@@ -40,7 +39,7 @@ export async function reserveTechnicalDesignJob(
     p_model: input.model,
   });
   if (error)
-    throw new HandoffError(500, "Could not reserve a technical planning job.");
+    throw new HandoffError(500, "Could not reserve a design implementation job.");
   const result = data as { state: string; job?: TechnicalDesignJob };
   if (result?.state === "not_found")
     throw new HandoffError(404, "Design request not found.");
@@ -51,7 +50,7 @@ export async function reserveTechnicalDesignJob(
       "PLAN_NOT_READY",
     );
   if (!result?.job || !["created", "existing"].includes(result.state))
-    throw new HandoffError(500, "Invalid technical planning reservation.");
+    throw new HandoffError(500, "Invalid design implementation reservation.");
   return { created: result.state === "created", job: result.job };
 }
 
@@ -99,7 +98,7 @@ export async function claimTechnicalDesignJob(
     p_run_attempt: run.runAttempt,
   });
   if (error)
-    throw new HandoffError(500, "Could not claim the technical planning job.");
+    throw new HandoffError(500, "Could not claim the design implementation job.");
   return data as {
     claimed: boolean;
     job?: TechnicalDesignJob;
@@ -120,21 +119,18 @@ export async function finishTechnicalDesignJob(
   supabase: Client,
   jobId: string,
   run: PlanningRun,
-  instructions: unknown,
 ) {
-  const validated = parseTechnicalInstructions(instructions);
   const { data, error } = await supabase.rpc("finish_technical_design_job", {
     p_job_id: jobId,
     p_run_id: run.runId,
     p_run_attempt: run.runAttempt,
-    p_instructions: validated as unknown as Json,
   });
   if (error)
-    throw new HandoffError(500, "Could not save the technical instructions.");
+    throw new HandoffError(500, "Could not record implementation outcome.");
   if (!data)
     throw new HandoffError(
       409,
-      "This workflow does not own an active planning job.",
+      "This workflow does not own an active design job.",
       "PLANNING_JOB_CONFLICT",
     );
   return { success: true };
@@ -150,17 +146,17 @@ export async function failTechnicalDesignJob(
     p_run_id: run.runId,
     p_run_attempt: run.runAttempt,
     p_error:
-      "Technical instruction generation failed. No automatic retry will run.",
+      "Design implementation failed. No automatic retry will run.",
   });
   if (error)
     throw new HandoffError(
       500,
-      "Could not record the technical planning failure.",
+      "Could not record the design implementation failure.",
     );
   if (!data)
     throw new HandoffError(
       409,
-      "This workflow does not own an active planning job.",
+      "This workflow does not own an active design job.",
       "PLANNING_JOB_CONFLICT",
     );
   return { success: true };
@@ -180,6 +176,6 @@ export async function reconcileTechnicalDesignRun(
   if (error)
     throw new HandoffError(
       500,
-      "Could not reconcile the technical planning workflow.",
+      "Could not reconcile the design implementation workflow.",
     );
 }

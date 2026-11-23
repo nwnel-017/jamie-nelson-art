@@ -189,49 +189,22 @@ test("technical job claim is bound to one run and completion is validated and id
     );
     assert.deepEqual(claimed.designRequest!.plan, ready.draft.plan);
     assert.equal(claimed.job!.repository_sha, input.repositorySha);
-    const instructions = {
-      objective: "Make gallery blue",
-      tasks: [
-        {
-          id: "task-1",
-          description: "Update gallery theme",
-          files: ["app/pages/gallery.vue"],
-          acceptance_criteria: ["Gallery is blue"],
-        },
-      ],
-      verification_steps: ["Run npm run build"],
-      constraints: [],
-      blockers: [],
-    };
     const wrongRun = await client.rpc("finish_technical_design_job", {
       p_job_id: job.id,
       p_run_id: run.runId + "1",
       p_run_attempt: 1,
-      p_instructions: instructions,
     });
     assert.equal(wrongRun.data, false);
-    await assert.rejects(
-      finishTechnicalDesignJob(client, job.id, run, { objective: "invalid" }),
-      /invalid technical instructions/,
-    );
     assert.deepEqual(
-      await finishTechnicalDesignJob(client, job.id, run, instructions),
+      await finishTechnicalDesignJob(client, job.id, run),
       { success: true },
     );
     const duplicate = await client.rpc("finish_technical_design_job", {
       p_job_id: job.id,
       p_run_id: run.runId,
       p_run_attempt: 1,
-      p_instructions: instructions,
     });
     assert.equal(duplicate.data, true);
-    const changed = await client.rpc("finish_technical_design_job", {
-      p_job_id: job.id,
-      p_run_id: run.runId,
-      p_run_attempt: 1,
-      p_instructions: { objective: "Changed" },
-    });
-    assert.equal(changed.data, false);
     await reconcileTechnicalDesignRun(client, job.id, run.runId, 1);
     assert.equal(
       (await getTechnicalDesignJobForDraft(client, ready.draft!.id))!.status,
@@ -412,7 +385,7 @@ for (const dispatchOutcome of ["rejected", "uncertain"] as const) {
         sourceRef: "master",
         backendUrl: "https://backend.example",
         model: "test-model",
-        promptVersion: "technical-instructions-v1",
+        promptVersion: "image-implementation-v1",
       };
       const originalFetch = globalThis.fetch;
       let githubCalls = 0;
@@ -546,7 +519,7 @@ test("approval dispatches a ready draft once and records the GitHub run ID", asy
       sourceRef: "master",
       backendUrl: "https://backend.example",
       model: "test-model",
-      promptVersion: "technical-instructions-v1",
+      promptVersion: "image-implementation-v1",
     };
     const originalFetch = globalThis.fetch;
     let githubCalls = 0;

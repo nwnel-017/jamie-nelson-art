@@ -36,7 +36,5 @@ npm run canva
 ### Approving a ready draft
 
 Ready drafts offer Approve, which sends a bodyless POST to
-`/api/agent/execute/:id`. An accepted response queues technical planning and
-implementation; Canva confirms that a pull request will be prepared. Publish
-completes after acceptance and the saved workflow is cleared. This stage does not
-automatically verify, repair, merge, or send email about the generated PR.
+`/api/agent/execute/:id`. An accepted response queues implementation using the approved requirements and attached design image; Canva confirms that a pull request will be prepared. Publish
+completes after acceptance and the saved workflow is cleared. The asynchronous workflow verifies the PR using automated checks and browser inspection of a fixture-backed local app, and can repair failures up to twice. Merging remains manual. The accepted status is not proof that verification has passed.

@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 const id = "550e8400-e29b-41d4-a716-446655440000";
+const collectionId = "660e8400-e29b-41d4-a716-446655440000";
 const artwork = {
+  collection_id: collectionId,
   id,
   title: "CI Flowers",
   description: "Original flower painting",
@@ -23,6 +25,8 @@ createServer((req, res) => {
   const table = url.pathname.split("/").pop();
   let rows;
   if (table === "artworks") rows = [artwork];
+  else if (table === "collections")
+    rows = [{ id: collectionId, collection_name: "CI Botanicals", desc: "Paintings inspired by the garden" }];
   else if (table === "gallery_images")
     rows = [
       { id: "gallery-1", artwork_id: id, image_path: "detail.png", order: 1 },
@@ -42,4 +46,4 @@ createServer((req, res) => {
       req.headers.accept?.includes("object+json") ? rows[0] : rows,
     ),
   );
-}).listen(54399, "127.0.0.1");
+}).listen(54399, process.env.FIXTURE_HOST || "127.0.0.1");

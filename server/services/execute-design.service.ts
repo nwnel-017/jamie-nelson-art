@@ -26,7 +26,7 @@ function planningResponse(job: TechnicalDesignJob, draftVersion: number) {
   if (job.status === "failed") {
     throw new HandoffError(
       409,
-      "The technical planning job failed. No automatic retry will run.",
+      "The design implementation job failed. No automatic retry will run.",
       "PLANNING_FAILED",
     );
   }
@@ -94,6 +94,6 @@ export async function executeDesignRequest(
     job.design_analysis_id,
   );
   if (!dispatched)
-    throw new HandoffError(500, "The planning job is unavailable.");
+    throw new HandoffError(500, "The design job is unavailable.");
   return planningResponse(dispatched, request.draft.version);
 }

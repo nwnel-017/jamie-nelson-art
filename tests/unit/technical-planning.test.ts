@@ -9,7 +9,6 @@ import {
   dispatchPlanningWorkflow,
   type PlanningConfig,
 } from "../../server/utils/agent/planning/github-planning";
-import { parseTechnicalInstructions } from "../../server/utils/agent/planning/technical-instructions";
 import { verifyGitHubWorkerToken } from "../../server/utils/auth/requireGitHubWorker";
 import {
   verifyPlanningWebhook,
@@ -23,7 +22,7 @@ const config: PlanningConfig = {
   workflowRef: "master",
   sourceRef: "master",
   backendUrl: "https://backend.example",
-  promptVersion: "technical-instructions-v1",
+  promptVersion: "image-implementation-v1",
   model: "configured-model",
 };
 const code = (expected: string) => (error: unknown) =>
@@ -36,20 +35,7 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json" },
   });
 
-const instructions = {
-  objective: "Make the gallery blue",
-  tasks: [
-    {
-      id: "task-1",
-      description: "Update the gallery styles",
-      files: ["app/pages/gallery.vue"],
-      acceptance_criteria: ["The gallery is blue"],
-    },
-  ],
-  verification_steps: ["Build the website"],
-  constraints: [],
-  blockers: [],
-};
+
 
 test("planning config fails closed and requires a dedicated HTTPS backend origin", () => {
   const runtime = {
@@ -140,34 +126,6 @@ test("uncertain GitHub dispatches never automatically retry and explicit rejecti
     resolvePlanningCommit(config, async () => json({ sha: "branch" })),
     code("SOURCE_UNAVAILABLE"),
   );
-});
-
-test("technical instructions require actionable tasks or blockers and reject malformed or oversized output", () => {
-  assert.deepEqual(parseTechnicalInstructions(instructions), instructions);
-  assert.equal(
-    parseTechnicalInstructions({
-      ...instructions,
-      tasks: [],
-      blockers: ["Required asset is missing"],
-    }).tasks.length,
-    0,
-  );
-  for (const invalid of [
-    null,
-    { ...instructions, tasks: [] },
-    { ...instructions, extra: true },
-    { ...instructions, tasks: [instructions.tasks[0], instructions.tasks[0]] },
-    {
-      ...instructions,
-      tasks: [{ ...instructions.tasks[0], files: ["../secret"] }],
-    },
-    { ...instructions, constraints: Array(100).fill("x".repeat(4000)) },
-  ]) {
-    assert.throws(
-      () => parseTechnicalInstructions(invalid),
-      code("INVALID_TECHNICAL_INSTRUCTIONS"),
-    );
-  }
 });
 
 test("worker JWT validation binds the repository, workflow, ref, audience and original run attempt", async () => {
