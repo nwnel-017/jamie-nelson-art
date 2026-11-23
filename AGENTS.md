@@ -33,6 +33,7 @@ Do not use naming conventions that need a deep understanding of the app to under
 
 ## Verification
 
+- In PR descriptions, state whether an agent reviewed the work, name the reviewing agent (e.g., GPT 6.1 Sol), and include the number of review rounds if reviewed in a loop.
 - Before committing code changes, run relevant tests and static checks, including lint and typecheck where applicable.
 - Before opening a pull request, run the full lint, typecheck, test, and production build checks.
 - If a verification command fails, determine whether the failure was introduced by the current changes. Fix failures caused by the current task before proceeding.
@@ -62,3 +63,7 @@ Use the default triage labels: `needs-triage`, `needs-info`, `ready-for-agent`, 
 ### Domain docs
 
 This is a single-context repo. See `docs/agents/domain.md`.
+
+### Frontend
+
+For public page, layout, or theme changes, read `docs/agents/frontend.md` before choosing files to edit.

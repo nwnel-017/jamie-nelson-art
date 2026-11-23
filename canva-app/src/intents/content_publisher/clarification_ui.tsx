@@ -2,6 +2,7 @@ import { loadWorkflow, saveWorkflow } from "./workflow_storage";
 import {
   Button,
   FormField,
+  FileInput,
   ImageCard,
   MultilineInput,
   Rows,
@@ -14,6 +15,8 @@ import {
   requestDesignAnalysis,
   approveDesignRequest,
   type DesignRequest,
+  type DesignImage,
+  uploadDesignAsset,
 } from "./design_request";
 
 export function ClarificationUi({
@@ -42,6 +45,18 @@ export function ClarificationUi({
       (_, i) => restoredAnswers?.values[i] ?? "",
     ),
   );
+  const [images, setImages] = useState<Record<string, DesignImage>>(() =>
+    Object.fromEntries(
+      (request.draft?.clarifying_questions ?? []).flatMap((q) => {
+        const image = [...(request.draft?.answers ?? [])]
+          .reverse()
+          .find((a) => a.image?.id === q.image_id)?.image;
+        return image ? [[q.id, image]] : [];
+      }),
+    ),
+  );
+  const [keptImages, setKeptImages] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const submissionId = useRef<string | undefined>(
@@ -82,8 +97,43 @@ export function ClarificationUi({
   };
   const questions = request.clarifying_questions;
   const last = index === questions.length - 1;
+  const currentQuestion = request.draft?.clarifying_questions[index];
+  const isImage = currentQuestion?.type === "image";
+  const answered = (i: number) => {
+    const q = request.draft?.clarifying_questions[i];
+    if (q?.type !== "image") return !!answers[i]?.trim();
+    const image = images[q.id];
+    return (
+      !!image &&
+      (!q.image_id || image.id !== q.image_id || keptImages[q.id] === image.id)
+    );
+  };
+  const upload = async (file: File) => {
+    if (!currentQuestion || !request.draft) return;
+    setUploading(true);
+    setError("");
+    try {
+      const image = await uploadDesignAsset(
+        request.id,
+        backendHost,
+        request.draft.version,
+        currentQuestion.id,
+        file,
+      );
+      setImages((previous) => ({ ...previous, [currentQuestion.id]: image }));
+      submissionId.current = undefined;
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Could not upload the image. Please try again.",
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
   const submit = async () => {
-    if (answers.some((answer) => !answer.trim())) return;
+    if (questions.some((_, i) => !answered(i))) return;
     setSaving(true);
     setError("");
     try {
@@ -94,10 +144,21 @@ export function ClarificationUi({
       const saved = await requestDesignAnalysis(request.id, backendHost, {
         draft_version: request.draft.version,
         submission_id: submissionId.current,
-        answers: request.draft.clarifying_questions.map((q, i) => ({
-          question_id: q.id,
-          answer: answers[i]!.trim(),
-        })),
+        answers: request.draft.clarifying_questions.map((q, i) => {
+          const image = images[q.id];
+          return {
+            question_id: q.id,
+            answer: (answers[i] ?? "").trim(),
+            ...(q.type === "image" && image
+              ? {
+                  image_id: image.id,
+                  ...(keptImages[q.id] === image.id
+                    ? { keep_anyway: true }
+                    : {}),
+                }
+              : {}),
+          };
+        }),
       });
       const previous = loadWorkflow(storageKey);
       if (previous)
@@ -218,7 +279,7 @@ export function ClarificationUi({
           <Button
             variant="primary"
             loading={saving}
-            disabled={saving}
+            disabled={saving || uploading}
             onClick={() => void approve()}
           >
             {intl.formatMessage({
@@ -240,14 +301,76 @@ export function ClarificationUi({
                   { current: index + 1, total: questions.length },
                 )}
               </Text>
+              {isImage && currentQuestion && (
+                <>
+                  <Text variant="bold">{currentQuestion.question}</Text>
+                  {currentQuestion.concern && (
+                    <Text>{currentQuestion.concern}</Text>
+                  )}
+                  {currentQuestion.image_id &&
+                    images[currentQuestion.id]?.id ===
+                      currentQuestion.image_id && (
+                      <Button
+                        variant="secondary"
+                        disabled={
+                          saving ||
+                          uploading ||
+                          keptImages[currentQuestion.id] ===
+                            currentQuestion.image_id
+                        }
+                        onClick={() => {
+                          const imageId = currentQuestion.image_id;
+                          if (!imageId) return;
+                          setKeptImages((previous) => ({...previous, [currentQuestion.id]:imageId}));
+                          submissionId.current = undefined;
+                        }}
+                      >
+                        {intl.formatMessage({
+                          defaultMessage: "Keep this image anyway",
+                          description:
+                            "Accept an image despite suitability concerns",
+                        })}
+                      </Button>
+                    )}
+                  <Text>
+                    {intl.formatMessage({
+                      defaultMessage:
+                        "Validated uploads become publicly accessible. Upload a PNG, JPEG, or WebP image up to 5 MB.",
+                      description: "Public image upload notice",
+                    })}
+                  </Text>
+                  <FileInput
+                    multiple={false}
+                    accept={["image/png", "image/jpeg", "image/webp"]}
+                    disabled={saving || uploading || atLimit}
+                    onDropAcceptedFiles={(files) => {
+                      const file = files[0];
+                      if (file) void upload(file);
+                    }}
+                    onDropRejectedFiles={() =>
+                      setError("Upload a PNG, JPEG, or WebP image.")
+                    }
+                  />
+                  {images[currentQuestion.id] && (
+                    <Text>{images[currentQuestion.id]?.filename}</Text>
+                  )}
+                </>
+              )}
               <FormField
-                label={questions[index]!}
+                label={
+                  isImage
+                    ? intl.formatMessage({
+                        defaultMessage: "Optional note",
+                        description: "Image answer note label",
+                      })
+                    : questions[index]!
+                }
                 control={(props) => (
                   <MultilineInput
                     {...props}
                     value={answers[index] ?? ""}
                     maxLength={4000}
-                    disabled={saving}
+                    disabled={saving || uploading}
                     onChange={(value) => {
                       {
                         submissionId.current = undefined;
@@ -265,7 +388,7 @@ export function ClarificationUi({
               {index > 0 && (
                 <Button
                   variant="secondary"
-                  disabled={saving}
+                  disabled={saving || uploading}
                   onClick={() => setIndex(index - 1)}
                 >
                   {intl.formatMessage({
@@ -302,9 +425,10 @@ export function ClarificationUi({
             loading={saving}
             disabled={
               saving ||
+              uploading ||
               limitReached ||
               request.attempts_remaining === 0 ||
-              (!!questions.length && !answers[index]?.trim())
+              (!!questions.length && !answered(index))
             }
             onClick={() => {
               if (last || !questions.length) void submit();

@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import sharp from 'sharp';
 import { prepareImage, validateContext, verifyImage } from '../../scripts/design-context.mjs';
 const id = '12345678-1234-4234-8234-123456789abc';
-const context = { designRequest: { id, draft_version: 2, instructions: 'Update gallery', requirements: ['Make gallery blue'], answers: [], change_options: [], design_image: 'https://project.supabase.co/storage/v1/object/public/website_designs/design.png' } };
+const context = { designRequest: { id, draft_version: 2, instructions: 'Update gallery', requirements: ['Make gallery blue'], answers: [{ question_id: id, question: 'Which logo?', answer: 'Use the supplied logo in the header and footer', image: { id, question_id: id, filename: 'logo.png', url: 'https://storage.example/design_images/logo.png' } }], change_options: [], design_image: 'https://project.supabase.co/storage/v1/object/public/website_designs/design.png' } };
 async function fixture(t) {
   const temp = await mkdtemp(join(tmpdir(), 'design-context-'));
   t.onTestFinished(() => rm(temp, { recursive: true, force: true }));
@@ -43,6 +43,8 @@ test('execution consumes approved requirements and answers instead of technical 
   assert.equal(run().status, 0);
   const prompt = await readFile(join(directory, 'execution-prompt.txt'), 'utf8');
   assert.match(prompt, /Make gallery blue/);
+  assert.ok(prompt.includes('https://storage.example/design_images/logo.png'));
+  assert.match(prompt, /header and footer/);
   assert.equal(prompt.includes('developer_instructions'), false);
   await writeFile(join(directory, 'design.png'), 'broken');
   assert.notEqual(run().status, 0);

@@ -14,6 +14,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      design_images: {
+        Row: { id: string; design_request_id: string; question_id: string; filename: string; storage_path: string; mime_type: string; created_at: string }
+        Insert: { id: string; design_request_id: string; question_id: string; filename: string; storage_path: string; mime_type: string; created_at?: string }
+        Update: { filename?: string }
+        Relationships: [{ foreignKeyName: "design_images_design_request_id_fkey"; columns: ["design_request_id"]; isOneToOne: false; referencedRelation: "design_requests"; referencedColumns: ["id"] }]
+      }
       technical_design_jobs: {
         Row: {
           id: string
@@ -25,6 +31,8 @@ export type Database = {
           status: string
           github_run_id: string | null
           github_run_attempt: number | null
+          result_email: Json | null
+          email_sent_at: string | null
           error: string | null
           created_at: string
           updated_at: string
@@ -41,6 +49,8 @@ export type Database = {
           status?: string
           github_run_id?: string | null
           github_run_attempt?: number | null
+          result_email?: Json | null
+          email_sent_at?: string | null
           error?: string | null
           created_at?: string
           updated_at?: string
@@ -57,6 +67,8 @@ export type Database = {
           status?: string
           github_run_id?: string | null
           github_run_attempt?: number | null
+          result_email?: Json | null
+          email_sent_at?: string | null
           error?: string | null
           created_at?: string
           updated_at?: string

@@ -174,7 +174,7 @@ export const SettingsUi = ({
             <Text>
               {intl.formatMessage({
                 defaultMessage:
-                  "Your request has been queued. The agent will prepare a pull request for review.",
+                  "Thank you for your input. Your agent is working to update your site. Please check your email inbox for a notification when the results are ready",
                 description:
                   "Approval accepted and work queued for the agent",
               })}

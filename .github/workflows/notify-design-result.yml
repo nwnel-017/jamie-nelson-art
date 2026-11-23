@@ -1,0 +1,47 @@
+name: Notify admin of design result
+run-name: Notify design run ${{ github.event.workflow_run.id || github.event.sha }}
+
+on:
+  status:
+  workflow_run:
+    workflows: [Implement approved design, Verify design pull request]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: design-notification-${{ github.event.workflow_run.id || github.event.sha }}
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    if: github.event_name != 'status' || github.event.context == 'Vercel'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      deployments: read
+      statuses: read
+      id-token: write
+    steps:
+      - name: Check out trusted notification code
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - name: Set up Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      - name: Email the terminal outcome
+        env:
+          TECHNICAL_JOBS_BACKEND_URL: ${{ vars.TECHNICAL_JOBS_BACKEND_URL }}
+          GH_TOKEN: ${{ github.token }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          DESIGN_WORKFLOW_REF: ${{ vars.DESIGN_WORKFLOW_REF || 'master' }}
+          DESIGN_PREVIEW_ENVIRONMENT: ${{ vars.DESIGN_PREVIEW_ENVIRONMENT || 'Preview' }}
+        run: node scripts/notify-design-result.mjs

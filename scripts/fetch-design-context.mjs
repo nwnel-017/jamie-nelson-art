@@ -17,6 +17,7 @@ if (process.argv[1]?.endsWith('/fetch-design-context.mjs')) {
   const directory = join(process.env.RUNNER_TEMP, 'technical-design-job');
   await mkdir(directory, { recursive: true });
   execFileSync('gh', ['run', 'download', runId, '--repo', repository, '--name', `technical-design-input-${runId}`, '--dir', directory]);
-  await loadContext(directory, process.env.DESIGN_ID);
+  const context = await loadContext(directory, process.env.DESIGN_ID);
+  if (context.job?.id !== process.env.JOB_ID) throw new Error('Approved context belongs to a different job');
   await verifyImage(directory);
 }

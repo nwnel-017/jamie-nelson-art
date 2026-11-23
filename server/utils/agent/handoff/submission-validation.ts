@@ -72,7 +72,9 @@ const clarificationSubmissionSchema = z
         z
           .object({
             question_id: z.uuid(),
-            answer: z.string().min(1).max(4000),
+            answer: z.string().max(4000).default(""),
+            image_id: z.uuid().optional(),
+            keep_anyway: z.boolean().optional(),
           })
           .strict(),
       )
@@ -101,27 +103,57 @@ export function validateClarificationAnswers(
   draft: DesignDraft,
 ): DraftAnswer[] {
   const answersById = new Map(
-    submittedAnswers.map(({ question_id, answer }) => [
-      question_id,
-      validateInstructions(answer),
-    ]),
+    submittedAnswers.map((answer) => [answer.question_id, answer]),
   );
   const questions = draft.clarifying_questions;
   if (
     answersById.size !== submittedAnswers.length ||
     answersById.size !== questions.length ||
-    questions.some((question) => !answersById.has(question.id))
-  ) {
+    questions.some((q) => !answersById.has(q.id))
+  )
     throw new HandoffError(
       422,
       "Answer every question in this draft exactly once.",
       "INVALID_ANSWERS",
     );
-  }
-  // Preserve draft order so equivalent submissions produce the same retry hash.
-  return questions.map(({ id, question }) => ({
-    question_id: id,
-    question,
-    answer: answersById.get(id)!,
-  }));
+  return questions.map(({ id, question, type, image_id, concern }) => {
+    const submitted = answersById.get(id)!;
+    if (type === "image") {
+      if (!submitted.image_id)
+        throw new HandoffError(
+          422,
+          "Upload an image for every image question.",
+          "INVALID_ANSWERS",
+        );
+      if (
+        (submitted.keep_anyway &&
+          (!concern || submitted.image_id !== image_id)) ||
+        (image_id === submitted.image_id && !submitted.keep_anyway)
+      )
+        throw new HandoffError(
+          422,
+          "Keep this image explicitly or upload a replacement.",
+          "INVALID_ANSWERS",
+        );
+      return {
+        ...submitted,
+        question,
+        ...(concern ? { concern } : {}),
+        answer: submitted.answer.trim()
+          ? validateInstructions(submitted.answer)
+          : "",
+      };
+    }
+    if (submitted.image_id || submitted.keep_anyway)
+      throw new HandoffError(
+        422,
+        "Only image questions accept images.",
+        "INVALID_ANSWERS",
+      );
+    return {
+      question_id: id,
+      question,
+      answer: validateInstructions(submitted.answer),
+    };
+  });
 }

@@ -6,6 +6,30 @@ on:
 permissions:
   contents: read
 jobs:
+  migration-check:
+    if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'master' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 3.1.0
+      - name: Validate production configuration
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_DB_PASSWORD"
+          test -n "$SUPABASE_PROJECT_ID"
+      - name: Link production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Check pending migrations without applying them
+        run: supabase db push --dry-run --remote
   test:
     runs-on: ubuntu-latest
     steps:
@@ -14,9 +38,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            canva-app/package-lock.json
       - run: npm ci
       - run: npm run check
       - run: npm test
+      - run: npm ci --prefix canva-app
+      - run: npm test --prefix canva-app -- --ci
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
@@ -37,11 +66,19 @@ jobs:
       - uses: supabase/setup-cli@v3
       - run: supabase start -x realtime,imgproxy,postgres-meta
       - run: supabase db reset
+      - run: npm ci --prefix canva-app
+      - run: npx playwright install --with-deps chromium
       - name: Test table policies and design workflow
         shell: bash
         run: |
           eval "$(supabase status -o env)"
           TEST_SUPABASE_URL="$API_URL" TEST_SUPABASE_ANON_KEY="$ANON_KEY" TEST_SUPABASE_SERVICE_KEY="$SERVICE_ROLE_KEY" npm run test:rls
           SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npm run test:integration
+          SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npm run test:requirements:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: requirements-browser-traces
+          path: test-results/requirements/
       - if: always()
         run: supabase stop --no-backup

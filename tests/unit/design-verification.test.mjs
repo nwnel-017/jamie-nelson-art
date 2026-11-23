@@ -24,14 +24,22 @@ test('verification checks are mandatory and model execution is isolated from pub
   assert.equal(ci.includes('if [['), false);
   assert.deepEqual(jobs.review.permissions, { contents: 'read', actions: 'read' });
   assert.deepEqual(jobs.repair.permissions, { contents: 'read', actions: 'read' });
-  assert.equal(jobs['notify-admin'].permissions.deployments, 'read');
-  assert.equal(jobs['notify-admin'].steps.at(-1).env.DESIGN_PREVIEW_URL, undefined);
+  const notification = parse(readFileSync(new URL('../../.github/workflows/notify-design-result.yml', import.meta.url), 'utf8'));
+  assert.deepEqual(notification.on.workflow_run.types, ['completed']);
+  const implementation = parse(readFileSync(new URL('../../.github/workflows/generate-technical-instructions.yml', import.meta.url), 'utf8'));
+  assert.deepEqual(notification.on.workflow_run.workflows, [implementation.name, workflow.name]);
+  assert.equal(notification.jobs.notify.permissions.deployments, 'read');
+  assert.equal(notification.jobs.notify.permissions['id-token'], 'write');
+  assert.equal(notification.jobs.notify.permissions.statuses, 'read');
+  assert.ok(Object.hasOwn(notification.on, 'status'));
+  assert.equal(notification.jobs.notify.steps[0].with.ref, '${{ github.workflow_sha }}');
+  assert.equal(workflow.concurrency['cancel-in-progress'], false);
 });
 
 test('notification requires clean checks, clean review, and no repair publication', () => {
-  assert.equal(condition(jobs['notify-admin'].if), true);
+  assert.equal(condition(jobs.ready.if), true);
   for (const changes of [{ checks: { outputs: { passed: 'false' } } }, { review: { outputs: { findings: '1' } } }, { review: { result: 'failure' } }, { repair: { result: 'success' } }, { 'publish-repair': { result: 'failure' } }]) {
-    assert.equal(condition(jobs['notify-admin'].if, state(changes)), false);
+    assert.equal(condition(jobs.ready.if, state(changes)), false);
   }
 });
 
@@ -184,6 +192,7 @@ test('verification dispatch must match the exact PR commit before checking or re
   assert.equal(step.env.EXPECTED_SHA, '${{ inputs.expected_head_sha }}');
   assert.match(step.run, /"\$sha" == "\$EXPECTED_SHA"/);
   assert.match(jobs['publish-repair'].steps.at(-1).run, /expected_head_sha=/);
+  assert.match(jobs['publish-repair'].steps.at(-1).run, /job_id=/);
 });
 
 test('inspection reports are retained and incomplete browser runs fail closed', t => {

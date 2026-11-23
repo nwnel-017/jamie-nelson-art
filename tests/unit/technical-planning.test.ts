@@ -91,9 +91,12 @@ test("GitHub resolves a pinned commit and dispatches only the configured workflo
     });
     return json({ workflow_run_id: 456 });
   };
-  assert.deepEqual(await dispatchPlanningWorkflow(config, "job-id", "design-id", dispatch), {
-    runId: "456",
-  });
+  assert.deepEqual(
+    await dispatchPlanningWorkflow(config, "job-id", "design-id", dispatch),
+    {
+      runId: "456",
+    },
+  );
 });
 
 test("uncertain GitHub dispatches never automatically retry and explicit rejections stay distinct", async () => {
@@ -119,7 +122,9 @@ test("uncertain GitHub dispatches never automatically retry and explicit rejecti
     code("DISPATCH_UNCONFIRMED"),
   );
   await assert.rejects(
-    dispatchPlanningWorkflow(config, "job-id", "design-id", async () => json({}, 403)),
+    dispatchPlanningWorkflow(config, "job-id", "design-id", async () =>
+      json({}, 403),
+    ),
     code("DISPATCH_FAILED"),
   );
   await assert.rejects(
@@ -185,6 +190,59 @@ test("worker JWT validation binds the repository, workflow, ref, audience and or
   await assert.rejects(verify(await sign({}, "wrong-audience")), unauthorized);
   await assert.rejects(verify(await sign({}, undefined, "-1m")), unauthorized);
   await assert.rejects(verify("bad-token"), unauthorized);
+  const notificationClaims = {
+    workflow_ref:
+      "owner/project/.github/workflows/notify-design-result.yml@refs/heads/master",
+    event_name: "workflow_run",
+    run_attempt: "2",
+  };
+  const notificationToken = await sign(
+    notificationClaims,
+    `${config.backendUrl}/design-result-email`,
+  );
+  assert.deepEqual(
+    await verifyGitHubWorkerToken(
+      notificationToken,
+      config,
+      keys as Parameters<typeof verifyGitHubWorkerToken>[2],
+      "notification",
+    ),
+    { runId: "456", runAttempt: 2 },
+  );
+  await assert.rejects(verify(notificationToken), unauthorized);
+  const statusToken = await sign(
+    { ...notificationClaims, event_name: "status" },
+    `${config.backendUrl}/design-result-email`,
+  );
+  assert.deepEqual(
+    await verifyGitHubWorkerToken(
+      statusToken,
+      config,
+      keys as Parameters<typeof verifyGitHubWorkerToken>[2],
+      "notification",
+    ),
+    { runId: "456", runAttempt: 2 },
+  );
+
+  for (const overrides of [
+    { event_name: "pull_request" },
+    { repository_id: "999" },
+    { workflow_ref: claims.workflow_ref },
+  ]) {
+    const token = await sign(
+      { ...notificationClaims, ...overrides },
+      `${config.backendUrl}/design-result-email`,
+    );
+    await assert.rejects(
+      verifyGitHubWorkerToken(
+        token,
+        config,
+        keys as Parameters<typeof verifyGitHubWorkerToken>[2],
+        "notification",
+      ),
+      unauthorized,
+    );
+  }
 });
 
 test("signed completion webhooks select only the trusted workflow run and reject tampering", () => {
