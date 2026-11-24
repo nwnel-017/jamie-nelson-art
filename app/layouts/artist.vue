@@ -60,7 +60,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false; });
           <a href="mailto:jamiestambolie@gmail.com">jamiestambolie@gmail.com</a>
           <a
             class="instagramLink"
-            href="https://www.instagram.com/jamienelsonart/"
+            href="https://www.instagram.com/jamstamnelson/"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Jamie Nelson Art on Instagram (opens in a new tab)"
