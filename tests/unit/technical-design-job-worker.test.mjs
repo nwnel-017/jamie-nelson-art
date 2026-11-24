@@ -22,7 +22,7 @@ function transport(result) {
   } };
 }
 test('direct implementation keeps publishing and backend credentials outside the model job', () => {
-  const jobs = parse(readFileSync('.github/workflows/generate-technical-instructions.yml', 'utf8')).jobs;
+  const jobs = parse(readFileSync('.github/workflows/implement-design.yml', 'utf8')).jobs;
   assert.equal(jobs.plan, undefined);
   assert.deepEqual(jobs.implement.permissions, { contents: 'read' });
   assert.deepEqual(jobs.report.permissions, { contents: 'read', 'id-token': 'write' });

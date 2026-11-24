@@ -26,7 +26,7 @@ test('verification checks are mandatory and model execution is isolated from pub
   assert.deepEqual(jobs.repair.permissions, { contents: 'read', actions: 'read' });
   const notification = parse(readFileSync(new URL('../../.github/workflows/notify-design-result.yml', import.meta.url), 'utf8'));
   assert.deepEqual(notification.on.workflow_run.types, ['completed']);
-  const implementation = parse(readFileSync(new URL('../../.github/workflows/generate-technical-instructions.yml', import.meta.url), 'utf8'));
+  const implementation = parse(readFileSync(new URL('../../.github/workflows/implement-design.yml', import.meta.url), 'utf8'));
   assert.deepEqual(notification.on.workflow_run.workflows, [implementation.name, workflow.name]);
   assert.equal(notification.jobs.notify.permissions.deployments, 'read');
   assert.equal(notification.jobs.notify.permissions['id-token'], 'write');
@@ -83,7 +83,7 @@ test('verification publishes pass/fail status on the exact reviewed SHA', t => {
 
 
 test('publication dispatches verification from the trusted workflow branch rather than the source branch', t => {
-  const generation = parse(readFileSync(new URL('../../.github/workflows/generate-technical-instructions.yml', import.meta.url), 'utf8'));
+  const generation = parse(readFileSync(new URL('../../.github/workflows/implement-design.yml', import.meta.url), 'utf8'));
   const step = generation.jobs.publish.steps.find(step => step.name === 'Open pull request');
   assert.equal(step.env.WORKFLOW_REF, '${{ github.ref_name }}');
   const dir = mkdtempSync(join(tmpdir(), 'verification-dispatch-'));
@@ -180,7 +180,7 @@ test('incomplete inspection and stale commits cannot produce a passing review', 
 
 test('approved context artifacts must come from the trusted original implementation workflow', async () => {
   const { validateContextRun } = await import('../../scripts/fetch-design-context.mjs');
-  const run = { event: 'workflow_dispatch', path: '.github/workflows/generate-technical-instructions.yml', head_branch: 'trusted', run_attempt: 1 };
+  const run = { event: 'workflow_dispatch', path: '.github/workflows/implement-design.yml', head_branch: 'trusted', run_attempt: 1 };
   assert.doesNotThrow(() => validateContextRun(run, 'trusted'));
   for (const change of [{ event: 'pull_request' }, { path: 'other.yml' }, { head_branch: 'untrusted' }, { run_attempt: 2 }]) {
     assert.throws(() => validateContextRun({ ...run, ...change }, 'trusted'));

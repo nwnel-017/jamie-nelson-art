@@ -14,7 +14,7 @@ const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 // Run from trusted workflow code after the design workflow finishes.
 export async function notifyDesignResult(run, env = process.env, request = fetch, wait = delay) {
   // Only handle design workflows dispatched from the configured branch.
-  const planning = run.path === '.github/workflows/generate-technical-instructions.yml';
+  const planning = run.path === '.github/workflows/implement-design.yml';
   const verification = run.path === '.github/workflows/verify-design-pr.yml';
   if (
     (!planning && !verification) ||
@@ -119,7 +119,7 @@ export async function notifyDesignResult(run, env = process.env, request = fetch
           next.id > run.id &&
           next.event === 'workflow_dispatch' &&
           next.head_branch === run.head_branch &&
-          ((next.path === '.github/workflows/generate-technical-instructions.yml' &&
+          ((next.path === '.github/workflows/implement-design.yml' &&
             next.display_title === `Technical design job ${jobId}`) ||
             (next.path === '.github/workflows/verify-design-pr.yml' &&
               next.display_title?.endsWith(` job ${jobId}`))),

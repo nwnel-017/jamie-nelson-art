@@ -78,7 +78,7 @@ test("GitHub resolves a pinned commit and dispatches only the configured workflo
   const dispatch: typeof fetch = async (url, options) => {
     assert.equal(
       String(url),
-      "https://api.github.com/repos/owner/project/actions/workflows/generate-technical-instructions.yml/dispatches",
+      "https://api.github.com/repos/owner/project/actions/workflows/implement-design.yml/dispatches",
     );
     assert.equal(options?.method, "POST");
     assert.deepEqual(JSON.parse(String(options?.body)), {
@@ -147,7 +147,7 @@ test("worker JWT validation binds the repository, workflow, ref, audience and or
     repository_id: config.repositoryId,
     ref: "refs/heads/master",
     workflow_ref:
-      "owner/project/.github/workflows/generate-technical-instructions.yml@refs/heads/master",
+      "owner/project/.github/workflows/implement-design.yml@refs/heads/master",
     event_name: "workflow_dispatch",
     runner_environment: "github-hosted",
     run_id: "456",
@@ -254,7 +254,7 @@ test("signed completion webhooks select only the trusted workflow run and reject
       run_attempt: 1,
       event: "workflow_dispatch",
       head_branch: "master",
-      path: ".github/workflows/generate-technical-instructions.yml",
+      path: ".github/workflows/implement-design.yml",
       status: "completed",
       display_title:
         "Technical design job 12345678-1234-4234-8234-123456789abc",

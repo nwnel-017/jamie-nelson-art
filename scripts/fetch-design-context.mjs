@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { loadContext, verifyImage } from './design-context.mjs';
 
 export function validateContextRun(run, workflowRef) {
-  if (run.event !== 'workflow_dispatch' || run.path !== '.github/workflows/generate-technical-instructions.yml' ||
+  if (run.event !== 'workflow_dispatch' || run.path !== '.github/workflows/implement-design.yml' ||
       run.head_branch !== workflowRef || run.run_attempt !== 1) throw new Error('Untrusted context workflow');
 }
 

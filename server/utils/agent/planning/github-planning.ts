@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { HandoffError } from "../errors";
 
-export const PLANNING_WORKFLOW = "generate-technical-instructions.yml";
+export const PLANNING_WORKFLOW = "implement-design.yml";
 export const TECHNICAL_PROMPT_VERSION = "image-implementation-v1";
 
 export interface PlanningConfig {

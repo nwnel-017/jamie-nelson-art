@@ -18,7 +18,7 @@ const run = {
   run_attempt: 1,
   event: 'workflow_dispatch',
   status: 'completed',
-  path: '.github/workflows/generate-technical-instructions.yml',
+  path: '.github/workflows/implement-design.yml',
   head_branch: 'master',
   display_title: `Technical design job ${job}`,
   conclusion: 'failure',

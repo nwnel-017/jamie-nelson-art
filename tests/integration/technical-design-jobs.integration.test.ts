@@ -755,7 +755,7 @@ for (const outcome of ["ready", "failure"] as const) {
       path:
         outcome === "ready"
           ? ".github/workflows/verify-design-pr.yml"
-          : ".github/workflows/generate-technical-instructions.yml",
+          : ".github/workflows/implement-design.yml",
       display_title: "",
     };
     try {

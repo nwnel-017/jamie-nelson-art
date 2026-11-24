@@ -63,7 +63,7 @@ Implementation of the agreed design flow. Canonical spec: [issue #28](https://gi
 
 ## Runtime and verification
 
-- The existing workflow filename and backend job names remain stable to preserve OIDC and webhook bindings.
+- The implementation workflow is `implement-design.yml`; dispatch, OIDC, and run validation use that filename. Backend job names remain unchanged.
 - Approved context is uploaded by the isolated claim job, retained for 30 days, and passed by originating run ID through repairs. Expired or missing context fails closed.
 - Generated app code builds and runs inside a container without host mounts or reviewer credentials, on an internal network with isolated gateway mode (no host bridge address), exposed through a trusted fixed-port proxy. Chromium runs in a separate credential-free container sharing only the app network namespace; the trusted host MCP wrapper controls it over a fixed debugger proxy. It uses local fixture data and the reference viewport. It must visually inspect affected pages, not only read source or accessibility snapshots.
 - A trusted browser wrapper captures from the actual browser page, records its URL and reviewed commit, and rejects navigation during capture. It never derives page identity from console or tool-result text, and does not store image pixels in the audit. Reported pages without this evidence cannot pass. Incomplete browser inspection fails review and requires human attention. Successful reports must identify the reviewed commit and inspected local URLs.
