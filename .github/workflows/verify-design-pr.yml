@@ -186,7 +186,7 @@ jobs:
           BASE_REF: ${{ needs.checks.outputs.base_ref }}
           DESIGN_ID: ${{ inputs.design_id }}
         run: |
-          node scripts/prepare-design-verification.mjs review
+          node scripts/prepare-design-review.mjs review
       - name: Run read-only implementation review
         id: codex
         uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
@@ -290,7 +290,7 @@ jobs:
           CHECKS_PASSED: ${{ needs.checks.outputs.passed }}
           DESIGN_ID: ${{ inputs.design_id }}
         run: |
-          node scripts/prepare-design-verification.mjs repair
+          node scripts/prepare-design-review.mjs repair
       - name: Ask Codex to repair
         uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
         with:

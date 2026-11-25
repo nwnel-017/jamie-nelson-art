@@ -125,7 +125,7 @@ test('preparation separates trusted instructions from review and repair data', t
   writeFileSync(join(approvedDirectory, 'image.json'), JSON.stringify({ sha256: createHash('sha256').update(image).digest('hex'), width: 180, height: 180 }));
   writeFileSync(join(approvedDirectory, 'input.json'), JSON.stringify({ designRequest: { id: '12345678-1234-4234-8234-123456789abc', draft_version: 1, instructions: 'Gallery', requirements: ['Make gallery blue'], answers: [], change_options: [], design_image: 'https://example.supabase.co/storage/v1/object/public/website_designs/design.png' } }));
   const run = (mode, passed = 'false') => {
-    const result = spawnSync(process.execPath, ['scripts/prepare-design-verification.mjs', mode], {
+    const result = spawnSync(process.execPath, ['scripts/prepare-design-review.mjs', mode], {
       encoding: 'utf8',
       env: { ...process.env, GITHUB_WORKSPACE: directory, RUNNER_TEMP: temporary, BASE_REF: 'master', CHECKS_PASSED: passed },
     });
@@ -158,7 +158,7 @@ test('preparation separates trusted instructions from review and repair data', t
   }
   unlinkSync(join(approvedDirectory, 'design.png'));
   for (const mode of ['review', 'repair']) {
-    const result = spawnSync(process.execPath, ['scripts/prepare-design-verification.mjs', mode], {
+    const result = spawnSync(process.execPath, ['scripts/prepare-design-review.mjs', mode], {
       encoding: 'utf8', env: { ...process.env, GITHUB_WORKSPACE: directory, RUNNER_TEMP: temporary, BASE_REF: 'master' },
     });
     assert.notEqual(result.status, 0);
