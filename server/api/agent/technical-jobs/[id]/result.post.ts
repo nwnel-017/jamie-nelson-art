@@ -15,7 +15,6 @@ const resultSchema = z.discriminatedUnion("status", [
   z
     .object({
       status: z.literal("completed"),
-      technical_instructions: z.unknown(),
     })
     .strict(),
   z.object({ status: z.literal("failed") }).strict(),
@@ -28,12 +27,12 @@ export default defineEventHandler(async (event) => {
     const worker = await requireGitHubWorker(event, config);
     const jobId = requireDesignRequestId(event);
     const result = resultSchema.safeParse(
-      await readAgentBody(event, 256 * 1024, "Planning result exceeds 256 KB."),
+      await readAgentBody(event, 256 * 1024, "Implementation result exceeds 256 KB."),
     );
     if (!result.success)
       throw new HandoffError(
         422,
-        "Provide a valid technical planning outcome.",
+        "Provide a valid design implementation outcome.",
       );
     const supabase = serverSupabaseServiceRole<Database>(event);
     if (result.data.status === "completed") {
@@ -41,7 +40,6 @@ export default defineEventHandler(async (event) => {
         supabase,
         jobId,
         worker,
-        result.data.technical_instructions,
       );
     } else {
       await failTechnicalDesignJob(supabase, jobId, worker);
@@ -50,7 +48,7 @@ export default defineEventHandler(async (event) => {
   } catch (error) {
     throw agentRequestError(
       error,
-      "Could not save the technical planning result.",
+      "Could not save the design implementation result.",
     );
   }
 });

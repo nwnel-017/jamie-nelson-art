@@ -15,18 +15,18 @@ import {
   type TechnicalDesignJob,
 } from "@server/services/technical-design-jobs.service";
 
-function planningResponse(job: TechnicalDesignJob, draftVersion: number) {
+function implementationResponse(job: TechnicalDesignJob, draftVersion: number) {
   if (job.status === "dispatching") {
     throw new HandoffError(
       503,
-      "Planning dispatch is not confirmed. The existing job has been kept; no duplicate job will be started.",
+      "Implementation dispatch is not confirmed. The existing job has been kept; no duplicate job will be started.",
       "DISPATCH_UNCONFIRMED",
     );
   }
   if (job.status === "failed") {
     throw new HandoffError(
       409,
-      "The technical planning job failed. No automatic retry will run.",
+      "The design implementation job failed. No automatic retry will run.",
       "PLANNING_FAILED",
     );
   }
@@ -63,9 +63,9 @@ export async function executeDesignRequest(
     request.draft.id,
   );
   // returns success when a job is running
-  if (existing) return planningResponse(existing, request.draft.version);
+  if (existing) return implementationResponse(existing, request.draft.version);
 
-  // git the latest commit
+  // Resolve the latest source commit.
   const repositorySha = await resolvePlanningCommit(config);
   const { created, job } = await reserveTechnicalDesignJob(supabase, {
     requestId: id,
@@ -74,7 +74,7 @@ export async function executeDesignRequest(
     promptVersion: config.promptVersion,
     model: config.model,
   });
-  if (!created) return planningResponse(job, request.draft.version);
+  if (!created) return implementationResponse(job, request.draft.version);
   let runId: string;
   try {
     // begin code execution
@@ -94,6 +94,6 @@ export async function executeDesignRequest(
     job.design_analysis_id,
   );
   if (!dispatched)
-    throw new HandoffError(500, "The planning job is unavailable.");
-  return planningResponse(dispatched, request.draft.version);
+    throw new HandoffError(500, "The design job is unavailable.");
+  return implementationResponse(dispatched, request.draft.version);
 }

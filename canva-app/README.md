@@ -36,8 +36,7 @@ npm run canva
 ### Approving a ready draft
 
 Ready drafts offer Approve, which sends a bodyless POST to
-`/api/agent/execute/:id`. An accepted response queues technical planning and
-implementation; Canva confirms that the agent is working and asks the admin to
+`/api/agent/execute/:id`. An accepted response queues implementation using the attached design image and approved requirements; Canva confirms that the agent is working and asks the admin to
 watch their email inbox. Publish completes after acceptance and clears the saved
 workflow.
 
@@ -63,3 +62,5 @@ database credentials are added to GitHub. Apply the new email-state migration
 before enabling the updated notification workflow. `DESIGN_PREVIEW_ENVIRONMENT` defaults to
 `Preview`. Set `DESIGN_WORKFLOW_REF` to the backend's configured planning workflow
 branch if it differs from `master`.
+
+Verification uses browser inspection of the fixture-backed local app and allows at most two repairs. Screenshots are optional; an audited inspection report is required. The accepted job status alone does not establish that verification passed.

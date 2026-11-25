@@ -16,6 +16,14 @@ on:
         description: Stable design request UUID
         required: true
         type: string
+      expected_head_sha:
+        description: Exact PR commit associated with this verification request
+        required: true
+        type: string
+      context_run_id:
+        description: Trusted implementation run containing the approved context
+        required: true
+        type: string
       repair_count:
         description: Number of completed automated repairs
         required: true
@@ -46,6 +54,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ inputs.pr_number }}
           DESIGN_ID: ${{ inputs.design_id }}
+          EXPECTED_SHA: ${{ inputs.expected_head_sha }}
         run: |
           [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
           [[ "$DESIGN_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]
@@ -53,6 +62,7 @@ jobs:
           ref=$(jq -r .head.ref <<<"$pr")
           sha=$(jq -r .head.sha <<<"$pr")
           base=$(jq -r .base.ref <<<"$pr")
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ && "$sha" == "$EXPECTED_SHA" ]]
           [[ "$ref" == "agent/design-$DESIGN_ID" && "$sha" =~ ^[0-9a-f]{40}$ ]]
           echo "head_ref=$ref" >> "$GITHUB_OUTPUT"
           echo "head_sha=$sha" >> "$GITHUB_OUTPUT"
@@ -106,8 +116,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
     outputs:
       findings: ${{ steps.review_result.outputs.findings }}
+      report_uploaded: ${{ steps.inspection_artifact.outputs.artifact-id }}
     steps:
       - name: Check out trusted reviewer prompt and schema
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -124,16 +136,62 @@ jobs:
           persist-credentials: false
           submodules: false
           lfs: false
+      - name: Retrieve approved context from trusted implementation run
+        working-directory: control
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONTEXT_RUN_ID: ${{ inputs.context_run_id }}
+          JOB_ID: ${{ inputs.job_id }}
+          DESIGN_ID: ${{ inputs.design_id }}
+          WORKFLOW_REF: ${{ github.ref_name }}
+        run: node scripts/fetch-design-context.mjs
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - name: Install trusted browser tools
+        working-directory: control
+        run: |
+          npm ci
+      - name: Build fixture app inside an isolated container
+        run: |
+          docker build --file control/scripts/design-browser.Dockerfile \
+            --build-context fixtures=control/tests/helpers \
+            --tag design-review-app source
+      - name: Build trusted browser image
+        run: docker build --file control/scripts/design-browser-tools.Dockerfile --tag design-review-browser control
+      - name: Start isolated fixture app
+        run: |
+          docker network create --internal -o com.docker.network.bridge.gateway_mode_ipv4=isolated design-review
+          docker run --detach --name design-review-app --network design-review \
+            --read-only --cap-drop ALL --security-opt no-new-privileges \
+            --pids-limit 256 --tmpfs /tmp:rw,noexec,nosuid,size=256m design-review-app
+          docker run --detach --name design-review-browser --network container:design-review-app \
+            --read-only --cap-drop ALL --security-opt no-new-privileges \
+            --pids-limit 256 --tmpfs /tmp:rw,noexec,nosuid,size=512m design-review-browser
+          docker run --detach --name design-review-proxy --network bridge \
+            --read-only --cap-drop ALL --security-opt no-new-privileges --user node \
+            --publish 127.0.0.1:3010:3010 --publish 127.0.0.1:54399:54399 --publish 127.0.0.1:9222:9222 \
+            public.ecr.aws/docker/library/node:22-bookworm-slim \
+            node --input-type=module -e "$(cat control/scripts/design-browser-proxy.mjs)"
+          docker network connect design-review design-review-proxy
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3010/artworks/gallery > /dev/null && curl --fail --silent http://127.0.0.1:9222/json/version > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          docker logs design-review-app
+          exit 1
       - name: Prepare isolated Codex config and review prompt
         working-directory: control
         env:
           BASE_REF: ${{ needs.checks.outputs.base_ref }}
+          DESIGN_ID: ${{ inputs.design_id }}
         run: |
-          node scripts/prepare-design-verification.mjs review
+          node scripts/prepare-design-review.mjs review
       - name: Run read-only implementation review
         id: codex
         uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
         with:
+          allow-bot-users: github-actions[bot]
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           working-directory: ${{ github.workspace }}/source
           codex-home: ${{ runner.temp }}/review-codex-home
@@ -143,10 +201,29 @@ jobs:
           prompt-file: ${{ runner.temp }}/implementation-review-prompt.txt
           output-schema-file: ${{ github.workspace }}/control/.github/codex/implementation-review.schema.json
           output-file: ${{ runner.temp }}/implementation-review.json
-          codex-args: '["--ephemeral", "--color", "never"]'
+          codex-args: '["--ephemeral", "--color", "never", "--image", "${{ runner.temp }}/technical-design-job/design.png"]'
       - name: Decide review outcome
         id: review_result
-        run: echo "findings=$(jq -r '.findings | length' "$RUNNER_TEMP/implementation-review.json")" >> "$GITHUB_OUTPUT"
+        working-directory: control
+        env:
+          EXPECTED_SHA: ${{ needs.checks.outputs.head_sha }}
+        run: node scripts/design-review-result.mjs
+      - name: Detect inspection report
+        if: always()
+        id: inspection_report
+        run: echo "exists=$([[ -s "$RUNNER_TEMP/inspection-report.md" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Retain browser inspection evidence
+        if: always() && steps.inspection_report.outputs.exists == 'true'
+        id: inspection_artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: design-inspection-${{ needs.checks.outputs.head_sha }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/inspection-report.md
+            ${{ runner.temp }}/browser-evidence
+            ${{ runner.temp }}/browser-audit.jsonl
+          if-no-files-found: warn
+          retention-days: 30
       - name: Save review outcome for repair job
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -168,6 +245,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
     outputs:
       patch: ${{ steps.patch.outputs.created }}
     steps:
@@ -197,15 +275,26 @@ jobs:
         with:
           name: design-review-${{ github.run_id }}
           path: ${{ runner.temp }}/design-repair
+      - name: Retrieve approved context from trusted implementation run
+        working-directory: control
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONTEXT_RUN_ID: ${{ inputs.context_run_id }}
+          JOB_ID: ${{ inputs.job_id }}
+          DESIGN_ID: ${{ inputs.design_id }}
+          WORKFLOW_REF: ${{ github.ref_name }}
+        run: node scripts/fetch-design-context.mjs
       - name: Prepare isolated repair request
         working-directory: control
         env:
           CHECKS_PASSED: ${{ needs.checks.outputs.passed }}
+          DESIGN_ID: ${{ inputs.design_id }}
         run: |
-          node scripts/prepare-design-verification.mjs repair
+          node scripts/prepare-design-review.mjs repair
       - name: Ask Codex to repair
         uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
         with:
+          allow-bot-users: github-actions[bot]
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           working-directory: ${{ github.workspace }}/source
           codex-home: ${{ runner.temp }}/repair-codex-home
@@ -213,7 +302,7 @@ jobs:
           safety-strategy: drop-sudo
           model: ${{ vars.CODEX_MODEL || 'gpt-5.4' }}
           prompt-file: ${{ runner.temp }}/design-repair/prompt.txt
-          codex-args: '["--ephemeral", "--color", "never"]'
+          codex-args: '["--ephemeral", "--color", "never", "--image", "${{ runner.temp }}/technical-design-job/design.png"]'
       - name: Export repair patch
         id: patch
         working-directory: source
@@ -267,6 +356,7 @@ jobs:
           JOB_ID: ${{ inputs.job_id }}
           EXPECTED_SHA: ${{ needs.checks.outputs.head_sha }}
           HEAD_REF: ${{ needs.checks.outputs.head_ref }}
+          CONTEXT_RUN_ID: ${{ inputs.context_run_id }}
         run: |
           git fetch origin "$HEAD_REF"
           [[ "$(git rev-parse FETCH_HEAD)" == "$EXPECTED_SHA" ]]
@@ -279,7 +369,7 @@ jobs:
           git commit -m "Repair design ${DESIGN_ID} verification"
           git push origin "HEAD:refs/heads/$HEAD_REF"
           gh workflow run verify-design-pr.yml --ref "${{ github.ref_name }}" \
-            -f pr_number="$PR_NUMBER" -f design_id="$DESIGN_ID" -f repair_count="$((REPAIR_COUNT + 1))" -f job_id="$JOB_ID"
+            -f pr_number="$PR_NUMBER" -f design_id="$DESIGN_ID" -f context_run_id="$CONTEXT_RUN_ID" -f expected_head_sha="$(git rev-parse HEAD)" -f repair_count="$((REPAIR_COUNT + 1))" -f job_id="$JOB_ID"
 
   human-attention:
     needs: [checks, review, repair, publish-repair]
@@ -324,3 +414,18 @@ jobs:
             -f state="$state" -f context=design-verification \
             -f description="Design build and automated review" \
             -f target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
+  inspection-link:
+    needs: [checks, review]
+    if: always() && needs.review.outputs.report_uploaded != ''
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Link inspection evidence from the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          HEAD_SHA: ${{ needs.checks.outputs.head_sha }}
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Design inspection for commit $HEAD_SHA: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID . See the inspection report and optional browser screenshots in the run artifacts. A failed or incomplete review is not a passing visual verification."

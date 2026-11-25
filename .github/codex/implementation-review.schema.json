@@ -1,7 +1,10 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["findings"],
+  "required": [
+    "findings",
+    "inspection"
+  ],
   "properties": {
     "findings": {
       "type": "array",
@@ -9,13 +12,74 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["severity", "file", "line", "evidence", "recommendation"],
+        "required": [
+          "severity",
+          "file",
+          "line",
+          "evidence",
+          "recommendation"
+        ],
         "properties": {
-          "severity": { "type": "string", "enum": ["blocking"] },
-          "file": { "type": "string", "minLength": 1, "maxLength": 500 },
-          "line": { "type": "integer", "minimum": 1 },
-          "evidence": { "type": "string", "minLength": 1, "maxLength": 2000 },
-          "recommendation": { "type": "string", "minLength": 1, "maxLength": 2000 }
+          "severity": {
+            "type": "string",
+            "enum": [
+              "blocking"
+            ]
+          },
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "recommendation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      }
+    },
+    "inspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "commit",
+        "pages",
+        "report"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "incomplete"
+          ]
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "pages": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "string"
+          }
+        },
+        "report": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
         }
       }
     }

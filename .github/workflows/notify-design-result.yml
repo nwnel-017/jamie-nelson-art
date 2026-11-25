@@ -4,7 +4,7 @@ run-name: Notify design run ${{ github.event.workflow_run.id || github.event.sha
 on:
   status:
   workflow_run:
-    workflows: [Generate technical design instructions, Verify design pull request]
+    workflows: [Implement approved design, Verify design pull request]
     types: [completed]
 
 permissions: {}

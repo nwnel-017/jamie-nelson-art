@@ -33,7 +33,6 @@ export type Database = {
           github_run_attempt: number | null
           result_email: Json | null
           email_sent_at: string | null
-          technical_instructions: Json | null
           error: string | null
           created_at: string
           updated_at: string
@@ -52,7 +51,6 @@ export type Database = {
           github_run_attempt?: number | null
           result_email?: Json | null
           email_sent_at?: string | null
-          technical_instructions?: Json | null
           error?: string | null
           created_at?: string
           updated_at?: string
@@ -71,7 +69,6 @@ export type Database = {
           github_run_attempt?: number | null
           result_email?: Json | null
           email_sent_at?: string | null
-          technical_instructions?: Json | null
           error?: string | null
           created_at?: string
           updated_at?: string
@@ -423,7 +420,7 @@ export type Database = {
       reserve_technical_design_job: { Args: { p_request_id: string; p_user_id: string; p_repository_sha: string; p_prompt_version: string; p_model: string }; Returns: Json }
       record_technical_design_job_dispatch: { Args: { p_job_id: string; p_run_id: string | null; p_failed: boolean }; Returns: undefined }
       claim_technical_design_job: { Args: { p_job_id: string; p_run_id: string; p_run_attempt: number }; Returns: Json }
-      finish_technical_design_job: { Args: { p_job_id: string; p_run_id: string; p_run_attempt: number; p_instructions: Json }; Returns: boolean }
+      finish_technical_design_job: { Args: { p_job_id: string; p_run_id: string; p_run_attempt: number }; Returns: boolean }
       fail_technical_design_job: { Args: { p_job_id: string; p_run_id: string; p_run_attempt: number; p_error: string }; Returns: boolean }
       reserve_design_analysis: { Args: { p_request_id: string; p_user_id: string; p_submission_id: string; p_base_version: number; p_payload_hash: string; p_limit: number }; Returns: Json }
       finish_design_analysis: { Args: { p_request_id: string; p_user_id: string; p_submission_id: string; p_analysis: Json; p_answers: Json }; Returns: number }

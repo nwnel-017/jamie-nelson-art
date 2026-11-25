@@ -1,0 +1,13 @@
+.git
+**/node_modules
+.nuxt
+.output
+.cache
+.data
+.env*
+.codex
+.agents
+.aws
+test-results
+playwright-report
+canva-app/dist

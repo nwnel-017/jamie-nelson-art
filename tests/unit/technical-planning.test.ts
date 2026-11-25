@@ -9,7 +9,6 @@ import {
   dispatchPlanningWorkflow,
   type PlanningConfig,
 } from "../../server/utils/agent/planning/github-planning";
-import { parseTechnicalInstructions } from "../../server/utils/agent/planning/technical-instructions";
 import { verifyGitHubWorkerToken } from "../../server/utils/auth/requireGitHubWorker";
 import {
   verifyPlanningWebhook,
@@ -23,7 +22,7 @@ const config: PlanningConfig = {
   workflowRef: "master",
   sourceRef: "master",
   backendUrl: "https://backend.example",
-  promptVersion: "technical-instructions-v1",
+  promptVersion: "image-implementation-v1",
   model: "configured-model",
 };
 const code = (expected: string) => (error: unknown) =>
@@ -36,20 +35,7 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json" },
   });
 
-const instructions = {
-  objective: "Make the gallery blue",
-  tasks: [
-    {
-      id: "task-1",
-      description: "Update the gallery styles",
-      files: ["app/pages/gallery.vue"],
-      acceptance_criteria: ["The gallery is blue"],
-    },
-  ],
-  verification_steps: ["Build the website"],
-  constraints: [],
-  blockers: [],
-};
+
 
 test("planning config fails closed and requires a dedicated HTTPS backend origin", () => {
   const runtime = {
@@ -92,7 +78,7 @@ test("GitHub resolves a pinned commit and dispatches only the configured workflo
   const dispatch: typeof fetch = async (url, options) => {
     assert.equal(
       String(url),
-      "https://api.github.com/repos/owner/project/actions/workflows/generate-technical-instructions.yml/dispatches",
+      "https://api.github.com/repos/owner/project/actions/workflows/implement-design.yml/dispatches",
     );
     assert.equal(options?.method, "POST");
     assert.deepEqual(JSON.parse(String(options?.body)), {
@@ -147,34 +133,6 @@ test("uncertain GitHub dispatches never automatically retry and explicit rejecti
   );
 });
 
-test("technical instructions require actionable tasks or blockers and reject malformed or oversized output", () => {
-  assert.deepEqual(parseTechnicalInstructions(instructions), instructions);
-  assert.equal(
-    parseTechnicalInstructions({
-      ...instructions,
-      tasks: [],
-      blockers: ["Required asset is missing"],
-    }).tasks.length,
-    0,
-  );
-  for (const invalid of [
-    null,
-    { ...instructions, tasks: [] },
-    { ...instructions, extra: true },
-    { ...instructions, tasks: [instructions.tasks[0], instructions.tasks[0]] },
-    {
-      ...instructions,
-      tasks: [{ ...instructions.tasks[0], files: ["../secret"] }],
-    },
-    { ...instructions, constraints: Array(100).fill("x".repeat(4000)) },
-  ]) {
-    assert.throws(
-      () => parseTechnicalInstructions(invalid),
-      code("INVALID_TECHNICAL_INSTRUCTIONS"),
-    );
-  }
-});
-
 test("worker JWT validation binds the repository, workflow, ref, audience and original run attempt", async () => {
   const { privateKey, publicKey } = await generateKeyPair("RS256");
   const jwk = {
@@ -189,7 +147,7 @@ test("worker JWT validation binds the repository, workflow, ref, audience and or
     repository_id: config.repositoryId,
     ref: "refs/heads/master",
     workflow_ref:
-      "owner/project/.github/workflows/generate-technical-instructions.yml@refs/heads/master",
+      "owner/project/.github/workflows/implement-design.yml@refs/heads/master",
     event_name: "workflow_dispatch",
     runner_environment: "github-hosted",
     run_id: "456",
@@ -296,7 +254,7 @@ test("signed completion webhooks select only the trusted workflow run and reject
       run_attempt: 1,
       event: "workflow_dispatch",
       head_branch: "master",
-      path: ".github/workflows/generate-technical-instructions.yml",
+      path: ".github/workflows/implement-design.yml",
       status: "completed",
       display_title:
         "Technical design job 12345678-1234-4234-8234-123456789abc",

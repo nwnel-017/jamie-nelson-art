@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     const supabase = serverSupabaseServiceRole<Database>(event);
 
     const config = readPlanningConfig(useRuntimeConfig(event));
-    const result = await log.step("queue-technical-planning", () => executeDesignRequest(
+    const result = await log.step("queue-design-implementation", () => executeDesignRequest(
       supabase,
       id,
       user.userId,

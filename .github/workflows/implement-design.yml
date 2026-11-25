@@ -1,9 +1,8 @@
 # This workflow turns an approved design request into a proposed code change.
-# It claims the job, asks Codex to create technical instructions, then asks
-# Codex to implement them. The changes are submitted as a pull request for review.
-# The workflow also reports the planning result to the backend.
+# It supplies the approved context and image directly to implementation.
+# Publishing and backend reporting remain isolated from the model process.
 
-name: Generate technical design instructions
+name: Implement approved design
 run-name: Technical design job ${{ inputs.job_id }}
 
 on:
@@ -53,74 +52,34 @@ jobs:
       - name: Claim one generation attempt and retrieve approved draft
         id: claim
         run: node scripts/technical-design-job-worker.mjs claim
-      - name: Transfer approved input to isolated planner job
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install image validation dependencies
+        if: steps.claim.outputs.claimed == 'true'
+        run: npm ci --omit=dev --ignore-scripts
+      - name: Download and validate approved image
+        if: steps.claim.outputs.claimed == 'true'
+        env:
+          DESIGN_ID: ${{ inputs.design_id }}
+        run: node scripts/technical-design-job-worker.mjs prepare
+      - name: Transfer approved context to isolated implementation job
         if: steps.claim.outputs.claimed == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: technical-design-input-${{ github.run_id }}
-          path: ${{ runner.temp }}/technical-design-job/input.json
-          retention-days: 1
-          if-no-files-found: error
-
-  # Generate technical instructions from the approved request and source code.
-  plan:
-    needs: claim
-    if: needs.claim.outputs.claimed == 'true' && github.run_attempt == 1
-    runs-on: ubuntu-latest
-    # This job cannot mint a backend identity token. No backend/database or
-    # GitHub dispatch credential is provided to the model process.
-    permissions:
-      contents: read
-    steps:
-      - name: Check out trusted prompt and worker
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          ref: ${{ github.sha }}
-          path: control
-          persist-credentials: false
-      - name: Check out the repository version approved for planning
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          ref: ${{ needs.claim.outputs.repository_sha }}
-          path: source
-          persist-credentials: false
-          submodules: false
-          lfs: false
-      - name: Download approved request
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: technical-design-input-${{ github.run_id }}
-          path: ${{ runner.temp }}/technical-design-job
-      - name: Prepare fixed developer instructions and request data
-        env:
-          TECHNICAL_JOBS_SOURCE_DIRECTORY: ${{ github.workspace }}/source
-          TECHNICAL_JOBS_PROMPT_FILE: ${{ github.workspace }}/control/server/utils/agent/prompts/technical-instructions.ts
-        run: node control/scripts/technical-design-job-worker.mjs prepare
-      - name: Inspect source and generate technical instructions once
-        uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          working-directory: ${{ github.workspace }}/source
-          codex-home: ${{ runner.temp }}/technical-design-job/codex-home
-          sandbox: read-only
-          safety-strategy: drop-sudo
-          model: ${{ needs.claim.outputs.model }}
-          prompt-file: ${{ runner.temp }}/technical-design-job/prompt.txt
-          output-schema-file: ${{ github.workspace }}/control/.github/codex/technical-instructions.schema.json
-          output-file: ${{ runner.temp }}/technical-design-job/technical-instructions.json
-          codex-args: '["--ephemeral", "--color", "never"]'
-      - name: Transfer instructions to isolated reporting job
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: technical-design-result-${{ github.run_id }}
-          path: ${{ runner.temp }}/technical-design-job/technical-instructions.json
-          retention-days: 1
+          path: |
+            ${{ runner.temp }}/technical-design-job/input.json
+            ${{ runner.temp }}/technical-design-job/design.png
+            ${{ runner.temp }}/technical-design-job/image.json
+          retention-days: 30
           if-no-files-found: error
 
   # Apply the instructions in an isolated checkout and export a patch.
   implement:
-    needs: [claim, plan]
-    if: needs.plan.result == 'success' && needs.claim.outputs.claimed == 'true' && github.run_attempt == 1
+    needs: claim
+    if: needs.claim.outputs.claimed == 'true' && github.run_attempt == 1
     runs-on: ubuntu-latest
     outputs:
       base_sha: ${{ steps.base.outputs.sha }}
@@ -156,17 +115,18 @@ jobs:
           persist-credentials: false
           submodules: false
           lfs: false
-      - name: Download generated instructions
+      - name: Download approved context
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: technical-design-result-${{ github.run_id }}
+          name: technical-design-input-${{ github.run_id }}
           path: ${{ runner.temp }}/technical-design-job
       - name: Build execution prompt
         env:
+          DESIGN_ID: ${{ inputs.design_id }}
           TECHNICAL_EXECUTION_PROMPT_FILE: ${{ github.workspace }}/control/server/utils/agent/prompts/execute-technical-instructions.ts
         run: |
           node control/scripts/prepare-design-execution.mjs
-      - name: Implement approved instructions
+      - name: Implement approved design
         uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
@@ -176,7 +136,7 @@ jobs:
           safety-strategy: drop-sudo
           model: ${{ needs.claim.outputs.model }}
           prompt-file: ${{ runner.temp }}/technical-design-job/execution-prompt.txt
-          codex-args: '["--ephemeral", "--color", "never"]'
+          codex-args: '["--ephemeral", "--color", "never", "--image", "${{ runner.temp }}/technical-design-job/design.png"]'
       - name: Export generated patch
         working-directory: source
         run: |
@@ -256,11 +216,11 @@ jobs:
           head_sha=$(git rev-parse HEAD)
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$head_sha" -f state=pending -f context=design-verification -f description="Awaiting design verification"
           gh workflow run verify-design-pr.yml --ref "$WORKFLOW_REF" \
-            -f pr_number="$pr_number" -f design_id="$DESIGN_ID" -f repair_count=0 -f job_id="$JOB_ID"
+            -f pr_number="$pr_number" -f design_id="$DESIGN_ID" -f context_run_id="$GITHUB_RUN_ID" -f expected_head_sha="$head_sha" -f repair_count=0 -f job_id="$JOB_ID"
 
-  # Save the planning result to the backend, including planning failures.
+  # Record the implementation handoff outcome; verified status is a separate follow-up.
   report:
-    needs: [claim, plan]
+    needs: [claim, implement]
     if: always() && needs.claim.outputs.claimed == 'true' && github.run_attempt == 1
     runs-on: ubuntu-latest
     permissions:
@@ -272,14 +232,8 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Download completed instructions
-        if: needs.plan.result == 'success'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: technical-design-result-${{ github.run_id }}
-          path: ${{ runner.temp }}/technical-design-job
-      - name: Save the planning outcome through the backend
+      - name: Save the implementation outcome through the backend
         if: always()
         env:
-          TECHNICAL_PLANNER_RESULT: ${{ needs.plan.result }}
+          TECHNICAL_IMPLEMENTATION_RESULT: ${{ needs.implement.result }}
         run: node scripts/technical-design-job-worker.mjs result

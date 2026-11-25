@@ -1,0 +1,3 @@
+# Implement approved designs directly from their image and requirements
+
+The implementation agent receives the actual design image, approved requirements, and clarification answers, inspects the repository, and plans before editing. We remove the separate technical instructions stage because it adds a handoff that can lose visual details and duplicate repository investigation. Review and repair use the same approved context, and verification includes automated checks, code review, and rendered pages; merging remains a human action. User-facing job completion semantics are deferred to issue #27.

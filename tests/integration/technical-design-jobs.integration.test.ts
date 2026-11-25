@@ -21,7 +21,7 @@ import {
   saveResultEmail,
   markResultEmailSent,
 } from "../../server/services/design-result-email.service";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { HandoffError } from "../../server/utils/agent/errors";
 import { executeDesignRequest } from "../../server/services/execute-design.service";
@@ -66,7 +66,7 @@ async function createDesignRequest(
     .from("design_requests")
     .insert({
       canva_user_id: userId,
-      design_image: "https://example.com/design.png",
+      design_image: "https://project.supabase.co/storage/v1/object/public/website_designs/design.png",
       instructions: "Make the gallery blue.",
       requirements: [],
       ambiguities: [],
@@ -209,49 +209,22 @@ test("technical job claim is bound to one run and completion is validated and id
     );
     assert.deepEqual(claimed.designRequest!.plan, ready.draft.plan);
     assert.equal(claimed.job!.repository_sha, input.repositorySha);
-    const instructions = {
-      objective: "Make gallery blue",
-      tasks: [
-        {
-          id: "task-1",
-          description: "Update gallery theme",
-          files: ["app/pages/gallery.vue"],
-          acceptance_criteria: ["Gallery is blue"],
-        },
-      ],
-      verification_steps: ["Run npm run build"],
-      constraints: [],
-      blockers: [],
-    };
     const wrongRun = await client.rpc("finish_technical_design_job", {
       p_job_id: job.id,
       p_run_id: run.runId + "1",
       p_run_attempt: 1,
-      p_instructions: instructions,
     });
     assert.equal(wrongRun.data, false);
-    await assert.rejects(
-      finishTechnicalDesignJob(client, job.id, run, { objective: "invalid" }),
-      /invalid technical instructions/,
-    );
     assert.deepEqual(
-      await finishTechnicalDesignJob(client, job.id, run, instructions),
+      await finishTechnicalDesignJob(client, job.id, run),
       { success: true },
     );
     const duplicate = await client.rpc("finish_technical_design_job", {
       p_job_id: job.id,
       p_run_id: run.runId,
       p_run_attempt: 1,
-      p_instructions: instructions,
     });
     assert.equal(duplicate.data, true);
-    const changed = await client.rpc("finish_technical_design_job", {
-      p_job_id: job.id,
-      p_run_id: run.runId,
-      p_run_attempt: 1,
-      p_instructions: { objective: "Changed" },
-    });
-    assert.equal(changed.data, false);
     await reconcileTechnicalDesignRun(client, job.id, run.runId, 1);
     assert.equal(
       (await getTechnicalDesignJobForDraft(client, ready.draft!.id))!.status,
@@ -281,7 +254,7 @@ for (const completedBeforeDispatch of [false, true]) {
       .from("design_requests")
       .insert({
         canva_user_id: userId,
-        design_image: "https://example.com/design.png",
+        design_image: "https://project.supabase.co/storage/v1/object/public/website_designs/design.png",
         instructions: "Make gallery blue",
         requirements: [],
         ambiguities: [],
@@ -385,7 +358,7 @@ for (const dispatchOutcome of ["rejected", "uncertain"] as const) {
       .from("design_requests")
       .insert({
         canva_user_id: userId,
-        design_image: "https://example.com/design.png",
+        design_image: "https://project.supabase.co/storage/v1/object/public/website_designs/design.png",
         instructions: "Make gallery blue",
         requirements: [],
         ambiguities: [],
@@ -432,7 +405,7 @@ for (const dispatchOutcome of ["rejected", "uncertain"] as const) {
         sourceRef: "master",
         backendUrl: "https://backend.example",
         model: "test-model",
-        promptVersion: "technical-instructions-v1",
+        promptVersion: "image-implementation-v1",
       };
       const originalFetch = globalThis.fetch;
       let githubCalls = 0;
@@ -519,7 +492,7 @@ test("approval dispatches a ready draft once and records the GitHub run ID", asy
     .from("design_requests")
     .insert({
       canva_user_id: userId,
-      design_image: "https://example.com/design.png",
+      design_image: "https://project.supabase.co/storage/v1/object/public/website_designs/design.png",
       instructions: "Make gallery blue",
       requirements: [],
       ambiguities: [],
@@ -566,7 +539,7 @@ test("approval dispatches a ready draft once and records the GitHub run ID", asy
       sourceRef: "master",
       backendUrl: "https://backend.example",
       model: "test-model",
-      promptVersion: "technical-instructions-v1",
+      promptVersion: "image-implementation-v1",
     };
     const originalFetch = globalThis.fetch;
     let githubCalls = 0;
@@ -608,22 +581,7 @@ test("approval dispatches a ready draft once and records the GitHub run ID", asy
   }
 });
 
-const implementationInstructions = {
-  objective: "Make gallery blue",
-  tasks: [
-    {
-      id: "theme",
-      description: "Update gallery theme",
-      files: ["app/pages/gallery.vue"],
-      acceptance_criteria: ["Gallery is blue"],
-    },
-  ],
-  verification_steps: ["Run npm run build"],
-  constraints: [],
-  blockers: [],
-};
-
-function implementGallery() {
+function implementGallery(context: Awaited<ReturnType<typeof claimTechnicalDesignJob>>) {
   const directory = mkdtempSync(join(tmpdir(), "design-implementation-"));
   const source = join(directory, "source");
   const input = join(directory, "technical-design-job");
@@ -632,10 +590,13 @@ function implementGallery() {
   try {
     mkdirSync(join(source, "app/pages"), { recursive: true });
     mkdirSync(input);
-    writeFileSync(
-      join(input, "technical-instructions.json"),
-      JSON.stringify(implementationInstructions),
-    );
+    const image = readFileSync(resolve("public/apple-touch-icon.png"));
+    writeFileSync(join(input, "input.json"), JSON.stringify(context));
+    writeFileSync(join(input, "design.png"), image);
+    writeFileSync(join(input, "image.json"), JSON.stringify({
+      sha256: createHash("sha256").update(image).digest("hex"),
+      width: image.readUInt32BE(16), height: image.readUInt32BE(20),
+    }));
     execFileSync(
       process.execPath,
       [resolve("scripts/prepare-design-execution.mjs")],
@@ -674,9 +635,10 @@ function implementGallery() {
     );
     git("commit", "--quiet", "-m", "Implement approved gallery");
     assert.match(git("show", "HEAD:app/pages/gallery.vue"), /class="blue"/);
-    assert.match(
-      readFileSync(join(input, "execution-prompt.txt"), "utf8"),
-      /Make gallery blue/,
+    assert.ok(
+      readFileSync(join(input, "execution-prompt.txt"), "utf8").includes(
+        JSON.stringify(context.designRequest!.requirements),
+      ),
     );
     return git("rev-parse", "HEAD").trim();
   } finally {
@@ -793,7 +755,7 @@ for (const outcome of ["ready", "failure"] as const) {
       path:
         outcome === "ready"
           ? ".github/workflows/verify-design-pr.yml"
-          : ".github/workflows/generate-technical-instructions.yml",
+          : ".github/workflows/implement-design.yml",
       display_title: "",
     };
     try {
@@ -811,18 +773,15 @@ for (const outcome of ["ready", "failure"] as const) {
       );
       jobId = approval.jobId;
       const worker = { runId: "789", runAttempt: 1 };
-      assert.equal(
-        (await claimTechnicalDesignJob(client, jobId, worker)).claimed,
-        true,
-      );
+      const claimed = await claimTechnicalDesignJob(client, jobId, worker);
+      assert.equal(claimed.claimed, true);
       if (outcome === "ready") {
         await finishTechnicalDesignJob(
           client,
           jobId,
           worker,
-          implementationInstructions,
         );
-        designSha = implementGallery();
+        designSha = implementGallery(claimed);
         completedRun.display_title = `Verify design PR #17 (repair 0) job ${jobId}`;
         // No URL yet: notification waits for a deployment event, not a polling timer.
         await notifyDesignResult(completedRun, notificationEnv, request);

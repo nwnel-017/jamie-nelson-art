@@ -18,7 +18,7 @@ const run = {
   run_attempt: 1,
   event: 'workflow_dispatch',
   status: 'completed',
-  path: '.github/workflows/generate-technical-instructions.yml',
+  path: '.github/workflows/implement-design.yml',
   head_branch: 'master',
   display_title: `Technical design job ${job}`,
   conclusion: 'failure',
@@ -163,7 +163,7 @@ test('an unclaimed duplicate planning dispatch does not send a failure email', a
     {
       name: 'claim',
       conclusion: 'success',
-      steps: [{ name: 'Transfer approved input to isolated planner job', conclusion: 'skipped' }],
+      steps: [{ name: 'Transfer approved context to isolated implementation job', conclusion: 'skipped' }],
     },
     { name: 'plan', conclusion: 'skipped', steps: [] },
   ]);
