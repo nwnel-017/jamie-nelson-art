@@ -1,7 +1,7 @@
 // Keep browser automation and its audit outside the generated app and browser containers.
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
@@ -21,9 +21,29 @@ export async function capturePage(page, size) {
   }
 }
 
-function main() {
+export async function mapReviewAssets(context, assets) {
+  await context.route('**/*', async route => {
+    const url = route.request().url();
+    let decoded = url;
+    if (url.startsWith('http://127.0.0.1:3010/_ipx/')) {
+      try { decoded = decodeURIComponent(url); }
+      catch { return route.abort('blockedbyclient'); }
+    }
+    const asset = assets.find(asset => url === asset.url ||
+      (url.startsWith('http://127.0.0.1:3010/_ipx/') && decoded.endsWith('/' + asset.url)));
+    if (asset) return route.fulfill({ status: 200, contentType: asset.contentType, body: Buffer.from(asset.body, 'base64') });
+    if (['http://127.0.0.1:3010', 'http://127.0.0.1:54399'].includes(new URL(url).origin)) return route.continue();
+    return route.abort('blockedbyclient');
+  });
+}
+
+async function main() {
   const endpoint = process.env.DESIGN_BROWSER_CDP;
   if (!endpoint) throw new Error('An isolated browser endpoint is required');
+  const connection = await chromium.connectOverCDP(endpoint);
+  const assets = process.env.DESIGN_BROWSER_ASSETS
+    ? JSON.parse(readFileSync(process.env.DESIGN_BROWSER_ASSETS, 'utf8')) : [];
+  for (const context of connection.contexts()) await mapReviewAssets(context, assets);
   const args = process.argv.slice(2);
   const child = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/@playwright/mcp/cli.js', import.meta.url)), '--cdp-endpoint', endpoint, ...args], { stdio: ['pipe', 'pipe', 'inherit'] });
   const tools = new Set(['browser_navigate', 'browser_snapshot', 'browser_take_screenshot', 'browser_click', 'browser_hover', 'browser_resize', 'browser_close', 'browser_wait_for', 'browser_console_messages', 'browser_network_requests', 'browser_press_key', 'browser_select_option']);

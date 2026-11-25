@@ -2,9 +2,10 @@ import { test, expect } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import path from "node:path";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 
 for (const capability of [
+  "approved assets",
   "navigation",
   "visual capture",
   "console spoof protection",
@@ -34,6 +35,9 @@ for (const capability of [
         });
         browserProcess.on("error", reject);
       }));
+    const assetUrl = 'https://project.supabase.co/storage/v1/object/public/design_images/approved.png';
+    const assetPath = testInfo.outputPath('review-assets.json');
+    await writeFile(assetPath, JSON.stringify([{ url: assetUrl, contentType: 'image/png', body: (await readFile('public/apple-touch-icon.png')).toString('base64') }]));
     const server = spawn(
       process.execPath,
       [
@@ -42,14 +46,13 @@ for (const capability of [
         "1280x800",
         "--output-dir",
         testInfo.outputPath("browser"),
-        "--allowed-origins",
-        "http://127.0.0.1:3010;http://127.0.0.1:54399",
       ],
       {
         stdio: ["pipe", "pipe", "pipe"],
         env: {
           ...process.env,
           DESIGN_BROWSER_CDP: endpoint,
+          DESIGN_BROWSER_ASSETS: assetPath,
           DESIGN_BROWSER_AUDIT: testInfo.outputPath("browser-audit.jsonl"),
           DESIGN_BROWSER_COMMIT: "a".repeat(40),
         },
@@ -102,6 +105,21 @@ for (const capability of [
       ).rejects.toThrow();
       if (capability === "navigation") return;
       const remote = await playwright.chromium.connectOverCDP(endpoint);
+      if (capability === 'approved assets') {
+        const page = remote.contexts()[0].pages()[0];
+        for (const url of [assetUrl, 'http://127.0.0.1:3010/_ipx/w_300/' + assetUrl]) {
+          const loaded = await page.evaluate(url => new Promise<boolean>(resolve => {
+            const image = new Image();
+            image.onload = () => resolve(image.naturalWidth > 0);
+            image.onerror = () => resolve(false);
+            image.src = url;
+            document.body.append(image);
+          }), url);
+          expect(loaded).toBe(true);
+        }
+        const blocked = await page.evaluate(() => fetch('https://unapproved.invalid/image').then(() => false, () => true));
+        expect(blocked).toBe(true);
+      }
       if (capability === "console spoof protection")
         await remote
           .contexts()[0]
@@ -129,6 +147,7 @@ for (const capability of [
         tool: "browser_take_screenshot",
         visual: true,
       });
+      await remote.close();
       await request("tools/call", { name: "browser_close", arguments: {} });
     } finally {
       lines.close();

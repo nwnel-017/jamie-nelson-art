@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { loadContext, verifyImage } from "./design-context.mjs";
+import { loadContext, verifyImage, prepareReviewAssets } from "./design-context.mjs";
 
 const mode = process.argv[2];
 if (!["review", "repair"].includes(mode))
@@ -12,6 +12,7 @@ const source = path.join(process.env.GITHUB_WORKSPACE, "source");
 const directory = path.join(temporary, "technical-design-job");
 const context = await loadContext(directory, process.env.DESIGN_ID);
 const image = await verifyImage(directory);
+if (mode === "review") await prepareReviewAssets(directory, context);
 const approved = JSON.stringify(context.designRequest);
 const head = execFileSync("git", ["-C", source, "rev-parse", "HEAD"], {
   encoding: "utf8",
@@ -82,10 +83,11 @@ if (mode === "review") {
     [
       "[mcp_servers.playwright]",
       'command = "node"',
-      `args = ${JSON.stringify([mcp, "--viewport-size", `${image.width}x${image.height}`, "--allowed-origins", "http://127.0.0.1:3010;http://127.0.0.1:54399", "--output-dir", path.join(temporary, "browser-evidence")])}`,
+      `args = ${JSON.stringify([mcp, "--viewport-size", `${image.width}x${image.height}`, "--output-dir", path.join(temporary, "browser-evidence")])}`,
       "required = true",
       'enabled_tools = ["browser_navigate", "browser_snapshot", "browser_take_screenshot", "browser_click", "browser_hover", "browser_resize", "browser_close", "browser_wait_for", "browser_console_messages", "browser_network_requests", "browser_press_key", "browser_select_option"]',
       "[mcp_servers.playwright.env]",
+      `DESIGN_BROWSER_ASSETS = ${JSON.stringify(path.join(directory, "review-assets.json"))}`,
       'DESIGN_BROWSER_CDP = "http://127.0.0.1:9222"',
       `DESIGN_BROWSER_AUDIT = ${JSON.stringify(path.join(temporary, "browser-audit.jsonl"))}`,
       `DESIGN_BROWSER_COMMIT = ${JSON.stringify(head)}`,

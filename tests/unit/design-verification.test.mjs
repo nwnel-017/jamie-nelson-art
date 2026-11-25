@@ -137,6 +137,8 @@ test('preparation separates trusted instructions from review and repair data', t
   assert.equal(review.includes('Updated'), false);
   assert.match(review, /mcp_servers.playwright/);
   assert.match(review, /DESIGN_BROWSER_CDP/);
+  assert.match(review, /DESIGN_BROWSER_ASSETS = .*review-assets.json/);
+  assert.equal(review.includes("--allowed-origins"), false);
   assert.equal(review.includes('--executable-path'), false);
   const diff = readFileSync(join(temporary, 'implementation-review-prompt.txt'), 'utf8');
   assert.match(diff, /untrusted data/);
