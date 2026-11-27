@@ -9,7 +9,7 @@ import {
   claimJob,
   reportResult,
   validateClaim,
-} from "../../scripts/technical-design-job-worker.mjs";
+} from "../../../../scripts/technical-design-job-worker.mjs";
 
 const id = "12345678-1234-4234-8234-123456789abc";
 const input = {

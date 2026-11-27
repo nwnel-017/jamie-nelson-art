@@ -11,12 +11,8 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["tests/integration/**/*.test.ts", "tests/unit/**/*.test.{ts,mjs}"],
-    exclude: [
-      "tests/integration/design-drafts.test.ts",
-      "tests/integration/design-workflow.test.ts",
-      "tests/integration/technical-design-jobs.integration.test.ts",
-    ],
+    include: ["tests/unit/**/*.test.{ts,mjs}", "tests/integration/**/*.test.{ts,mjs}"],
+    exclude: ["tests/integration/design/supabase/**"],
     setupFiles: ["tests/helpers/setup.ts"],
   },
 });

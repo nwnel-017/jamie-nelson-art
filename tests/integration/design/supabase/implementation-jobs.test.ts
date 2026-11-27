@@ -15,21 +15,21 @@ import { execFileSync } from "node:child_process";
 import {
   notifyDesignResult,
   notifyPreviewStatus,
-} from "../../scripts/notify-design-result.mjs";
+} from "../../../../scripts/notify-design-result.mjs";
 import {
   getResultEmail,
   saveResultEmail,
   markResultEmailSent,
-} from "../../server/services/design-result-email.service";
+} from "../../../../server/services/design-result-email.service";
 import { randomUUID, createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { HandoffError } from "../../server/utils/agent/errors";
-import { executeDesignRequest } from "../../server/services/execute-design.service";
-import type { Database } from "../../types/supabase/database";
+import { HandoffError } from "../../../../server/utils/agent/errors";
+import { executeDesignRequest } from "../../../../server/services/execute-design.service";
+import type { Database } from "../../../../types/supabase/database";
 import {
   reserveAnalysis,
   finishAnalysis,
-} from "../../server/services/design-drafts.service";
+} from "../../../../server/services/design-drafts.service";
 import {
   reserveTechnicalDesignJob,
   markTechnicalJobDispatched,
@@ -38,7 +38,7 @@ import {
   reconcileTechnicalDesignRun,
   finishTechnicalDesignJob,
   getTechnicalDesignJobForDraft,
-} from "../../server/services/technical-design-jobs.service";
+} from "../../../../server/services/technical-design-jobs.service";
 
 afterEach(() => vi.restoreAllMocks());
 

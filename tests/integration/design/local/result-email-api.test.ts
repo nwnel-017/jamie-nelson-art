@@ -3,11 +3,11 @@ import { createClient } from "@supabase/supabase-js";
 import { createEvent, setHeader } from "h3";
 import { IncomingMessage, ServerResponse } from "node:http";
 import { Socket } from "node:net";
-import handler from "../../server/api/agent/technical-jobs/[id]/email.post";
+import handler from "../../../../server/api/agent/technical-jobs/[id]/email.post";
 import { serverSupabaseServiceRole } from "#supabase/server";
 
 vi.mock("#supabase/server", () => ({ serverSupabaseServiceRole: vi.fn() }));
-vi.mock("../../server/utils/auth/requireGitHubWorker", () => ({
+vi.mock("../../../../server/utils/auth/requireGitHubWorker", () => ({
   requireGitHubWorker: vi
     .fn()
     .mockResolvedValue({ runId: "12", runAttempt: 1 }),
