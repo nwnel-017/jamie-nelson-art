@@ -12,24 +12,30 @@ import type {
 import type { RequirementsServer } from "../helpers/requirements-server";
 import { buildRequirementsHarness } from "../helpers/requirements-browser.mjs";
 
-const test = base.extend<{ app: RequirementsServer }>({
-  app: async ({ page }, use) => {
-    const output = await mkdtemp(join(tmpdir(), "requirements-browser-"));
-    let app: RequirementsServer | undefined;
-    try {
-      await buildRequirementsHarness(output);
-      const { startRequirementsServer } = (await import(
-        pathToFileURL(join(output, "server.mjs")).href
-      )) as typeof import("../helpers/requirements-server");
-      app = await startRequirementsServer(output);
-      await page.goto(app.url);
-      await use(app);
-    } finally {
+const test = base.extend<{ app: RequirementsServer }, { harness: string }>({
+  harness: [
+    // eslint-disable-next-line no-empty-pattern -- Playwright requires destructured fixtures.
+    async ({}, use) => {
+      const output = await mkdtemp(join(tmpdir(), "requirements-browser-"));
       try {
-        await app?.close();
+        await buildRequirementsHarness(output);
+        await use(output);
       } finally {
         await rm(output, { recursive: true, force: true });
       }
+    },
+    { scope: "worker" },
+  ],
+  app: async ({ page, harness }, use) => {
+    const { startRequirementsServer } = (await import(
+      pathToFileURL(join(harness, "server.mjs")).href
+    )) as typeof import("../helpers/requirements-server");
+    const app = await startRequirementsServer(harness);
+    try {
+      await page.goto(app.url);
+      await use(app);
+    } finally {
+      await app.close();
     }
   },
 });
@@ -190,6 +196,60 @@ test("an initially ready analysis goes directly to review", async ({
   ).toHaveCount(0);
   expect(await history(app, request.id)).toMatchObject([
     { status: "completed", version: 1, answers: [], plan: ready.plan },
+  ]);
+});
+
+test("approving the reviewed plan queues its persisted draft for implementation", async ({
+  page,
+  app,
+}) => {
+  app.setResponses([initial, ready]);
+  const request = await submitDesign(page);
+  await answerQuestions(page, {
+    "Which page?": "/artworks/gallery",
+    "Which color?": "Blue",
+  });
+  expect((await submitAnswers(page, request.id)).status()).toBe(200);
+  await expectReview(page);
+  const result = page.waitForResponse((response) =>
+    response.url().endsWith(`/api/agent/execute/${request.id}`),
+  );
+  await page.getByRole("button", { name: "Approve", exact: true }).click();
+  const response = await result;
+  expect(response.status()).toBe(202);
+  const approval = await response.json();
+  await expect(
+    page.getByText(/Your agent is working to update your site/),
+  ).toBeVisible();
+  const draft = await app.client
+    .from("design_analyses")
+    .select("id")
+    .eq("design_request_id", request.id)
+    .eq("version", 2)
+    .single();
+  expect(draft.error).toBeNull();
+  const jobs = await app.client
+    .from("technical_design_jobs")
+    .select("*")
+    .eq("design_request_id", request.id);
+  expect(jobs.error).toBeNull();
+  expect(jobs.data).toHaveLength(1);
+  expect(jobs.data![0]).toMatchObject({
+    id: approval.jobId,
+    design_analysis_id: draft.data!.id,
+    repository_sha: "a".repeat(40),
+    github_run_id: "123",
+    status: "queued",
+  });
+  expect(app.dispatches).toEqual([
+    {
+      ref: "master",
+      inputs: {
+        job_id: approval.jobId,
+        design_id: request.id,
+        base_branch: "master",
+      },
+    },
   ]);
 });
 
