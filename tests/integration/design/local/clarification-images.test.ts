@@ -2,8 +2,8 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 import sharp from "sharp";
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../../types/supabase/database";
-import { uploadClarificationImage } from "../../server/services/design-images.service";
+import type { Database } from "../../../../types/supabase/database";
+import { uploadClarificationImage } from "../../../../server/services/design-images.service";
 
 const requestId = "12345678-1234-4234-8234-123456789abc";
 const questionId = "12345678-1234-4234-8234-123456789abd";

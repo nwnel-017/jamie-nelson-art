@@ -7,16 +7,42 @@ import { client, owner, setResponses } from "./requirements-boundaries";
 import { getCanvaVerifiers } from "../../server/utils/agent/canva";
 
 export async function startRequirementsServer(output: string) {
+  setResponses([]);
+  const dispatches: Array<{ ref: string; inputs: Record<string, string> }> = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init) => {
+    const url = input instanceof Request ? input.url : String(input);
+    if (url === "https://api.github.com/repos/test/portfolio/commits/master")
+      return Response.json({ sha: "a".repeat(40) });
+    if (
+      url ===
+      "https://api.github.com/repos/test/portfolio/actions/workflows/implement-design.yml/dispatches"
+    ) {
+      dispatches.push(JSON.parse(String(init?.body)));
+      return Response.json({ workflow_run_id: 123 });
+    }
+    if (new URL(url).hostname === "api.github.com")
+      throw new Error(`Unexpected GitHub request: ${url}`);
+    return originalFetch(input, init);
+  };
   Object.assign(globalThis, {
     defineEventHandler: h3.defineEventHandler,
     setHeader: h3.setHeader,
     getHeader: h3.getHeader,
     getQuery: h3.getQuery,
+    setResponseStatus: h3.setResponseStatus,
     useRuntimeConfig: () => ({
       canvaAppId: "requirements-e2e",
       canvaAllowedUserIds: owner,
       canvaExportHosts: "export-download.canva.com",
       maxAnalyzeAttempts: 4,
+      planningGithubToken: "test-token",
+      planningRepository: "test/portfolio",
+      planningRepositoryId: "123",
+      planningWorkflowRef: "master",
+      planningSourceRef: "master",
+      planningBackendUrl: "https://portfolio.example",
+      planningCodexModel: "test-model",
     }),
   });
   const verifiers = getCanvaVerifiers("requirements-e2e");
@@ -35,6 +61,8 @@ export async function startRequirementsServer(output: string) {
     await import("../../server/api/agent/clarify-requirements/[id].post");
   const { default: upload } =
     await import("../../server/api/agent/images/[id].post");
+  const { default: execute } =
+    await import("../../server/api/agent/execute/[id].post");
   const router = h3
     .createRouter()
     .get(
@@ -46,7 +74,8 @@ export async function startRequirementsServer(output: string) {
     )
     .post("/api/agent/gather-requirements", gather)
     .post("/api/agent/clarify-requirements/:id", clarify)
-    .post("/api/agent/images/:id", upload);
+    .post("/api/agent/images/:id", upload)
+    .post("/api/agent/execute/:id", execute);
   for (const file of await readdir(output)) {
     if (!/\.(js|css)$/.test(file)) continue;
     router.get(
@@ -73,7 +102,9 @@ export async function startRequirementsServer(output: string) {
     url: `http://127.0.0.1:${address.port}`,
     client,
     setResponses,
+    dispatches,
     async close() {
+      globalThis.fetch = originalFetch;
       server.closeAllConnections();
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

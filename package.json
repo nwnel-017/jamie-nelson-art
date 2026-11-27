@@ -18,10 +18,10 @@
     "test": "vitest run",
     "test:rls": "vitest run --config vitest.rls.config.ts",
     "test:e2e": "playwright test",
-    "test:planning": "vitest run tests/unit/technical-planning.test.ts tests/unit/technical-design-job-worker.test.mjs tests/unit/design-execution.test.mjs tests/unit/design-patch.test.mjs",
-    "test:planning:integration": "npm run test:integration -- tests/integration/technical-design-jobs.integration.test.ts",
+    "test:planning": "vitest run tests/unit/design/implementation- tests/unit/design/github-worker-identity.test.ts tests/integration/design/local/technical-design-job-worker.test.mjs tests/integration/design/local/design-execution.test.mjs tests/integration/design/local/design-patch.test.mjs",
+    "test:planning:integration": "npm run test:integration -- tests/integration/design/supabase/implementation-jobs.test.ts",
     "test:integration": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
-    "test:verification": "vitest run tests/unit/design-verification.test.mjs tests/unit/design-ready-email.test.mjs",
+    "test:verification": "vitest run tests/unit/design/workflow-policy.test.mjs tests/unit/design/review-outcome.test.mjs tests/unit/design/approved-context.test.mjs tests/unit/design/visual-capture.test.mjs tests/integration/design/local/review-preparation.test.mjs tests/integration/design/local/inspection-report.test.mjs tests/integration/design/local/publication-verification.test.ts tests/integration/design/local/verification-checks.test.mjs tests/integration/design/local/design-ready-email.test.mjs",
     "test:requirements:e2e": "node --env-file-if-exists=.env node_modules/@playwright/test/cli.js test --config playwright.requirements.config.ts"
   },
   "dependencies": {
