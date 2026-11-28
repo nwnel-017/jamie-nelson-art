@@ -21,3 +21,9 @@ A design change with a pull request that has passed required checks and design v
 
 **No changes needed**:
 A successful outcome where verification establishes that the existing website already satisfies the approved requirements and design image. It does not require a new pull request.
+
+**Design update budget**:
+The configured monetary allowance for one requested UI update, covering design analysis, clarification, **Implementation**, **Design verification**, repairs, and retries through handoff for human review. The artist does not choose this allowance for each update.
+
+**Budget stop**:
+A halt to automated work when the **Design update budget** is exhausted or its remaining allowance cannot be established. Partial work is preserved and the artist is directed to contact the developer.
