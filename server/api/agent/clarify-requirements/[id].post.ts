@@ -6,6 +6,7 @@ import { requireDesignRequestId } from "@server/utils/agent/request-id";
 import { readAgentBody } from "@server/utils/agent/read-body";
 import { agentRequestError } from "@server/utils/agent/errors";
 import { designRequestResponse } from "@server/utils/agent/design-request";
+import { createBudgetModel } from "@server/services/design-budget.service";
 import { createVerificationModel } from "@server/utils/agent/model-factory";
 import { clarifyDesignRequest } from "@server/services/clarify-requirements.service";
 import { analysisLimit } from "@server/utils/agent/analysis-config";
@@ -30,7 +31,7 @@ export default defineEventHandler(async (event) => {
       id,
       user.userId,
       body,
-      createVerificationModel(config),
+      config.aiProvider === "test" ? createVerificationModel(config) : createBudgetModel(config, supabase, id, user.userId, "clarification"),
       analysisLimit(config.maxAnalyzeAttempts),
     ));
 

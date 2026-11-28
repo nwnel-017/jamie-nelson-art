@@ -1,3 +1,4 @@
+import { budgetStop } from "./design-budget.service";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "#types/supabase/database";
 import { getRequestWithDraft } from "@server/services/design-drafts.service";
@@ -46,6 +47,7 @@ export async function executeDesignRequest(
   config: PlanningConfig,
 ) {
   const request = await getRequestWithDraft(supabase, id, userId);
+  if (request.budget_status === "stopped") throw budgetStop();
   if (
     request.analysis_status !== "completed" ||
     !request.ready ||

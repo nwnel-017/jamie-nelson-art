@@ -379,3 +379,10 @@ test.each([
     expect(approved).not.toHaveBeenCalled();
   },
 );
+
+
+test("a stopped budget shows developer guidance and cannot approve a ready draft", () => {
+  renderInTestProvider(<Review initial={{ ...designRequest, ready: true, budget_status: "stopped" }} />);
+  expect(screen.getByText(/Contact the developer/)).toBeTruthy();
+  expect(screen.queryByRole("button")).toBeNull();
+});

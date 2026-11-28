@@ -14,6 +14,13 @@ export type Database = {
   }
   public: {
     Tables: {
+      design_budgets: {
+        Row: { design_request_id: string; spent_nano: number; stages: Json; status: string; stop_reason: string | null; reservation: Json | null }
+        Insert: { design_request_id: string; spent_nano?: number; stages?: Json; status?: string; stop_reason?: string | null; reservation?: Json | null }
+        Update: { spent_nano?: number; stages?: Json; status?: string; stop_reason?: string | null; reservation?: Json | null }
+        Relationships: [{ foreignKeyName: "design_budgets_design_request_id_fkey"; columns: ["design_request_id"]; isOneToOne: true; referencedRelation: "design_requests"; referencedColumns: ["id"] }]
+      }
+
       design_images: {
         Row: { id: string; design_request_id: string; question_id: string; filename: string; storage_path: string; mime_type: string; created_at: string }
         Insert: { id: string; design_request_id: string; question_id: string; filename: string; storage_path: string; mime_type: string; created_at?: string }
@@ -416,6 +423,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      design_budget_action: { Args: { p_id: string; p_owner: string; p_action: string; p_payload?: Json }; Returns: Json }
       reconcile_technical_design_run: { Args: { p_job_id: string; p_run_id: string; p_run_attempt: number }; Returns: undefined }
       reserve_technical_design_job: { Args: { p_request_id: string; p_user_id: string; p_repository_sha: string; p_prompt_version: string; p_model: string }; Returns: Json }
       record_technical_design_job_dispatch: { Args: { p_job_id: string; p_run_id: string | null; p_failed: boolean }; Returns: undefined }

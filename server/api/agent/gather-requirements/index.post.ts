@@ -5,6 +5,7 @@ import { requireCanvaUser } from "@server/utils/auth/requireCanvaUser";
 import { readAgentBody } from "@server/utils/agent/read-body";
 import { agentRequestError } from "@server/utils/agent/errors";
 import { designRequestResponse } from "@server/utils/agent/design-request";
+import { createBudgetModel } from "@server/services/design-budget.service";
 import { createVerificationModel } from "@server/utils/agent/model-factory";
 import { validateGatherRequirements } from "@server/utils/agent/handoff/submission-validation";
 import { gatherRequirements } from "@server/services/gather-requirements.service";
@@ -23,7 +24,7 @@ export default defineEventHandler(async (event) => {
     log.write("provider.selected", { provider: config.aiProvider });
     const result = await gatherRequirements(supabase, user.userId, submission, {
       log,
-      model: createVerificationModel(config),
+      model: (id) => config.aiProvider === "test" ? createVerificationModel(config) : createBudgetModel(config, supabase, id, user.userId, "analysis"),
       limit: analysisLimit(config.maxAnalyzeAttempts),
     });
 

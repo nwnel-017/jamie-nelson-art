@@ -11,6 +11,8 @@ import { serverSupabaseServiceRole } from "#supabase/server";
 import { getCanvaVerifiers } from "../../server/utils/agent/canva";
 import { downloadImage } from "../../server/utils/agent/handoff/image";
 import gather from "../../server/api/agent/gather-requirements/index.post";
+import { createTestModel } from "../../server/utils/agent/test-model";
+import { budgetAction } from "../../server/services/design-budget.service";
 import clarify from "../../server/api/agent/clarify-requirements/[id].post";
 
 vi.mock("#supabase/server", () => ({ serverSupabaseServiceRole: vi.fn() }));
@@ -22,6 +24,7 @@ vi.mock("../../server/utils/agent/handoff/image", async (original) => ({
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 it("submits a design and clarifies it into a persisted ready plan", async () => {
@@ -57,9 +60,24 @@ it("submits a design and clarifies it into a persisted ready plan", async () => 
     canvaAppId: appId,
     canvaAllowedUserIds: userId,
     canvaExportHosts: "export-download.canva.com",
-    aiProvider: "test",
+    aiProvider: "responses",
+    aiModel: "gpt-4.1-2025-04-14",
+    aiApiKey: "fake",
+    aiBaseUrl: "https://api.openai.com/v1",
     maxAnalyzeAttempts: 4,
   }));
+  vi.stubEnv("AI_DESIGN_BUDGET_USD", "5");
+  const transport = fetch;
+  const paidProvider = createTestModel();
+  let calls = 0;
+  vi.stubGlobal("fetch", async (url: Parameters<typeof fetch>[0], init?: RequestInit) => {
+    if (String(url) !== "https://api.openai.com/v1/responses") return transport(url, init);
+    calls++;
+    const payload = JSON.parse(String(init?.body));
+    const data = JSON.parse(payload.input[0].content[0].text);
+    const result = await paidProvider.generate({ systemPrompt: payload.instructions, instructions: data.instructions, changeOptions: data.changeOptions, draft: data.design_draft, answers: data.user_answers });
+    return new Response(JSON.stringify({ id: "resp_fake", model: payload.model, service_tier: "default", status: "completed", usage: {input_tokens: 1000, output_tokens: 100, total_tokens: 1100, input_tokens_details: {cached_tokens: 0}}, output: [{type: "message", content: [{type: "output_text", text: result.text}]}] }));
+  });
   const app = createApp();
   app.use(
     createRouter()
@@ -138,6 +156,8 @@ it("submits a design and clarifies it into a persisted ready plan", async () => 
         answers,
       },
     );
+    expect(calls).toBe(2);
+    expect(await budgetAction(client, id, userId, "inspect")).toMatchObject({spent_nano: 5600000, reservation: null, stages: {analysis: {spent_nano: 2800000}, clarification: {spent_nano: 2800000}}});
     expect(final.ready).toBe(true);
     expect(final.draft_version).toBe(2);
     expect(final.designRequest.clarifying_questions).toEqual([]);

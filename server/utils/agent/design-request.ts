@@ -141,6 +141,8 @@ export type DraftAnalysis = z.infer<typeof draftAnalysisSchema>;
 
 export type VerificationResult = z.infer<typeof verificationResultSchema>;
 export interface DesignRequest {
+  budget_status?: string;
+  budget_stop_reason?: string | null;
   design_image: string;
   instructions: string;
   response: string;

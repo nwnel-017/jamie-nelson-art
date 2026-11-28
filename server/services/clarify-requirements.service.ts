@@ -103,7 +103,7 @@ export async function clarifyDesignRequest(
       error instanceof HandoffError
         ? error.message
         : "Could not refine the design plan. Your latest draft has been kept.",
-      "ANALYSIS_FAILED",
+      error instanceof HandoffError ? error.code ?? "ANALYSIS_FAILED" : "ANALYSIS_FAILED",
     );
   }
 }

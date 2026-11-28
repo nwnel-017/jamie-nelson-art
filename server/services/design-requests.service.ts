@@ -16,14 +16,15 @@ export async function getDesignRequest(
   const { data, error } = await supabase
     .from("design_requests")
     .select(
-      "id, design_image, instructions, requirements, ambiguities, clarifying_questions, created_at, updated_at, clarifications, clarified_at, analysis_status, analyze_attempts, change_options",
+      "id, design_image, instructions, requirements, ambiguities, clarifying_questions, created_at, updated_at, clarifications, clarified_at, analysis_status, analyze_attempts, change_options, design_budgets(status, stop_reason)",
     )
     .eq("id", id)
     .eq("canva_user_id", canvaUserId)
     .maybeSingle();
   if (error) throw new HandoffError(500, "Could not load the design request.");
   if (!data) throw new HandoffError(404, "Design request not found.");
-  return data as DesignRequest;
+  const { design_budgets: budget, ...request } = data;
+  return { ...request, budget_status: budget?.status, budget_stop_reason: budget?.stop_reason } as DesignRequest;
 }
 
 async function findSubmission(

@@ -24,7 +24,7 @@ export async function gatherRequirements(
     model,
     limit,
     log = createFlowLog("gather-analysis"),
-  }: { model: AiModel; limit: number; log?: ReturnType<typeof createFlowLog> },
+  }: { model: AiModel | ((id: string) => AiModel); limit: number; log?: ReturnType<typeof createFlowLog> },
 ) {
   const hash = submissionHash({
     instructions: handoff.instructions,
@@ -55,7 +55,7 @@ export async function gatherRequirements(
   }
   try {
     const result = await log.step("model-generate-and-validate", () =>
-      new VerificationAgent(model).run({
+      new VerificationAgent(typeof model === "function" ? model(id) : model).run({
         instructions: handoff.instructions,
         changeOptions: handoff.changeOptions,
         image: { bytes: handoff.bytes, mimeType: "image/png" },
@@ -86,7 +86,7 @@ export async function gatherRequirements(
       error instanceof HandoffError
         ? error.message
         : "Could not analyze the design. Please submit again.",
-      "ANALYSIS_FAILED",
+      error instanceof HandoffError ? error.code ?? "ANALYSIS_FAILED" : "ANALYSIS_FAILED",
     );
   }
 }

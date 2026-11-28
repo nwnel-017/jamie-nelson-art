@@ -62,6 +62,7 @@ export function ClarificationUi({
   const submissionId = useRef<string | undefined>(
     restoredAnswers?.submissionId,
   );
+  const [budgetStopped, setBudgetStopped] = useState(request.budget_status === "stopped");
   const [limitReached, setLimitReached] = useState(false);
   const atLimit = limitReached || request.attempts_remaining === 0;
   const ready = request.ready === true;
@@ -169,6 +170,11 @@ export function ClarificationUi({
         });
       onSubmitted(saved);
     } catch (error) {
+      if (error instanceof DesignAnalysisError && error.code === "BUDGET_STOP") {
+        setBudgetStopped(true);
+        const previous = loadWorkflow(storageKey);
+        if (previous) saveWorkflow(storageKey, { ...previous, analysis: { ...request, budget_status: "stopped" } });
+      }
       if (
         error instanceof DesignAnalysisError &&
         error.code === "ANALYSIS_FAILED"
@@ -197,6 +203,15 @@ export function ClarificationUi({
       setSaving(false);
     }
   };
+  if (budgetStopped)
+    return (
+      <Rows spacing="2u">
+        <Text>{intl.formatMessage({
+          defaultMessage: "Design update stopped because its spending allowance is exhausted or uncertain. Your progress has been kept. Contact the developer.",
+          description: "Budget stop with preserved progress and developer contact guidance",
+        })}</Text>
+      </Rows>
+    );
   if (
     request.analysis_status === "pending" ||
     (request.analysis_status === "failed" && !request.draft)

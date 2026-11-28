@@ -62,6 +62,7 @@ export interface DesignRequest {
   draft_version?: number;
   analyze_attempts?: number;
   attempts_remaining?: number;
+  budget_status?: string;
   analysis_status: "pending" | "completed" | "failed";
   design_image: string;
   instructions: string;
@@ -206,6 +207,7 @@ export function parseDesignRequestResponse(value: unknown): DesignRequest {
     clarifications,
     clarified_at: clarifiedAt,
     analysis_status: analysisStatus,
+    budget_status: "budget_status" in data && typeof data.budget_status === "string" ? data.budget_status : undefined,
   } as DesignRequest;
 }
 
